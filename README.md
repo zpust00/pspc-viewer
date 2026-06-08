@@ -129,15 +129,3 @@ Shranjene v `~/.pspcviewer/config.json`:
   "panel_mode": "components"
 }
 ```
-
----
-
-## Urejanje podatkov
-
-1. Odpri `.pspc` datoteko
-2. Izberi tabelo v levem panelu
-3. **Dvojni klik** na celico → vpiši novo vrednost → Enter
-4. Spremenjena vrstica se obarva **rumeno**
-5. `Ctrl+S` → zapiše spremembe v bazo
-
-> ⚠️ Pred urejanjem naredi **varnostno kopijo** `.pspc` datoteke!
