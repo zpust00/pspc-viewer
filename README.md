@@ -123,7 +123,7 @@ Shranjene v `~/.pspcviewer/config.json`:
 ```json
 {
   "simplified_tables": ["EngineeringItems", "Valve", "Elbow", "…"],
-  "last_file": "C:/Projekti/PS315.pspc",
+  "last_file": "C:?????/???????/?????.pspc",
   "show_hidden_cols": false,
   "geometry": "1420x900",
   "panel_mode": "components"
