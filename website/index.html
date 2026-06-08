@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSPC Viewer — Autodesk Plant 3D .pspc Reader</title>
+<link rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: #f0f4f8; color: #1e293b; line-height: 1.6; }
+
+  /* ── Header ─────────────────────────────────────── */
+  header {
+    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%);
+    color: white; padding: 0 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    height: 64px; position: sticky; top: 0; z-index: 100;
+    box-shadow: 0 2px 14px rgba(0,0,0,.5);
+  }
+  .logo { display: flex; align-items: center; gap: .7rem; }
+  .logo-icon { font-size: 1.6rem; }
+  .logo-text { font-size: 1.1rem; font-weight: 700; letter-spacing: .03em; }
+  .logo-ver {
+    font-size: .7rem; background: #2563eb; padding: 2px 7px;
+    border-radius: 4px; margin-left: .4rem; vertical-align: middle;
+  }
+  .btn-dl-hdr {
+    background: #2563eb; color: white;
+    padding: .45rem 1.1rem; border-radius: 6px;
+    text-decoration: none; font-weight: 600; font-size: .85rem;
+    display: flex; align-items: center; gap: .4rem;
+    transition: background .2s;
+  }
+  .btn-dl-hdr:hover { background: #1d4ed8; }
+
+  /* ── Hero ────────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 55%, #1e40af 100%);
+    color: white; padding: 4.5rem 2rem 4rem; text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.8rem; font-weight: 800; letter-spacing: -.03em;
+    margin-bottom: .4rem;
+  }
+  .hero h1 span { color: #60a5fa; }
+  .hero .sub {
+    font-size: 1.1rem; color: #94a3b8; max-width: 540px;
+    margin: 0 auto 1.8rem;
+  }
+  .hero .sub code { background: rgba(255,255,255,.1); padding: 1px 5px; border-radius: 4px; }
+  .badges { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin-bottom: 2rem; }
+  .badge {
+    background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18);
+    padding: .25rem .75rem; border-radius: 20px; font-size: .8rem;
+  }
+  .dl-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+  .btn-dl {
+    display: inline-flex; align-items: center; gap: .6rem;
+    background: #2563eb; color: white;
+    padding: .9rem 2.2rem; border-radius: 8px;
+    text-decoration: none; font-weight: 700; font-size: 1rem;
+    box-shadow: 0 4px 18px rgba(37,99,235,.5);
+    transition: background .2s, transform .15s;
+  }
+  .btn-dl:hover { background: #1d4ed8; transform: translateY(-2px); }
+  .btn-dl.btn-setup {
+    background: #059669;
+    box-shadow: 0 4px 18px rgba(5,150,105,.4);
+  }
+  .btn-dl.btn-setup:hover { background: #047857; }
+  .btn-dl .ico { font-size: 1.3rem; }
+  .btn-dl .sub-lbl { font-size: .72rem; font-weight: 400; opacity: .8; display: block; margin-top: .1rem; }
+  .dl-note { font-size: .8rem; color: #64748b; margin-top: .8rem; }
+  .dl-warn {
+    display: inline-block; margin-top: .55rem;
+    background: rgba(251,191,36,.12); border: 1px solid rgba(251,191,36,.4);
+    color: #fbbf24; border-radius: 6px; padding: .35rem .8rem;
+    font-size: .78rem; line-height: 1.5;
+  }
+  .dl-warn strong { color: #fcd34d; }
+
+  /* ── Troubleshooting ─────────────────────────────────────── */
+  .trouble-box {
+    background: white; border-radius: 10px; padding: 1.25rem 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #e2e8f0;
+    margin-bottom: 2.5rem;
+  }
+  .trouble-box details { margin-bottom: .6rem; }
+  .trouble-box summary {
+    cursor: pointer; font-weight: 600; font-size: .93rem;
+    padding: .4rem .2rem; list-style: none; display: flex; align-items: center; gap: .5rem;
+  }
+  .trouble-box summary::before { content: "▶"; font-size: .7rem; color: #94a3b8; transition: transform .2s; }
+  .trouble-box details[open] summary::before { transform: rotate(90deg); }
+  .trouble-box .detail-body { padding: .5rem .2rem .2rem 1.4rem; color: #475569; font-size: .88rem; line-height: 1.7; }
+  .trouble-box .detail-body ol { padding-left: 1.2rem; }
+  .trouble-box .detail-body code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .82rem; }
+
+  /* ── How to run from source ──────────────────────── */
+  .run-box {
+    background: #1e293b; color: #e2e8f0;
+    border-radius: 8px; padding: 1rem 1.4rem; margin-top: 2rem;
+    font-family: monospace; font-size: .87rem; text-align: left;
+    max-width: 480px; margin-left: auto; margin-right: auto;
+  }
+  .run-box .cmt { color: #64748b; }
+  .run-box .cmd { color: #86efac; }
+
+  /* ── Main ────────────────────────────────────────── */
+  main { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.5rem; }
+
+  /* ── Section title ───────────────────────────────── */
+  .sec-title {
+    font-size: 1.35rem; font-weight: 700;
+    margin-bottom: 1.2rem; padding-bottom: .5rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  /* ── Features ────────────────────────────────────── */
+  .features { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 2.5rem; }
+  .feature-card {
+    background: white; border-radius: 10px; padding: 1.2rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #e2e8f0;
+  }
+  .feature-icon { font-size: 1.5rem; display: block; margin-bottom: .45rem; }
+  .feature-card strong { display: block; margin-bottom: .2rem; font-size: .93rem; }
+  .feature-card p { color: #64748b; font-size: .84rem; }
+
+  /* ── Shortcuts ───────────────────────────────────── */
+  .shortcuts {
+    background: white; border-radius: 10px; padding: 1.25rem 1.5rem;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06); border: 1px solid #e2e8f0;
+    margin-bottom: 2.5rem; overflow-x: auto;
+  }
+  .shortcuts table { border-collapse: collapse; width: 100%; }
+  .shortcuts tr { border-bottom: 1px solid #f1f5f9; }
+  .shortcuts tr:last-child { border-bottom: none; }
+  .shortcuts td { padding: .45rem .75rem; font-size: .9rem; }
+  .shortcuts td:first-child {
+    font-family: "Cascadia Code", "Fira Code", monospace;
+    color: #374151; font-weight: 600; white-space: nowrap;
+    background: #f8fafc; border-radius: 4px;
+  }
+
+  /* ── Project structure ───────────────────────────── */
+  .struct-box {
+    background: #1e293b; color: #e2e8f0;
+    border-radius: 10px; padding: 1.25rem 1.5rem;
+    font-family: "Cascadia Code", "Fira Code", monospace; font-size: .86rem;
+    line-height: 1.8; margin-bottom: 2.5rem; overflow-x: auto;
+  }
+  .struct-box .dim { color: #64748b; }
+  .struct-box .hl  { color: #60a5fa; font-weight: 600; }
+
+  /* ── Source tabs ─────────────────────────────────── */
+  .source-section { margin-bottom: 3rem; }
+  .tab-nav {
+    display: flex; flex-wrap: wrap; gap: 0;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .tab-btn {
+    background: none; border: none; cursor: pointer;
+    padding: .55rem .9rem; border-radius: 6px 6px 0 0;
+    font-family: inherit; font-size: .82rem; color: #64748b;
+    display: flex; flex-direction: column; align-items: flex-start; gap: .05rem;
+    border-bottom: 2px solid transparent; margin-bottom: -2px;
+    transition: color .15s, background .15s;
+  }
+  .tab-btn:hover { background: #f1f5f9; color: #1e293b; }
+  .tab-btn.active { color: #2563eb; border-bottom-color: #2563eb; background: #eff6ff; }
+  .tab-label { font-weight: 600; }
+  .tab-fname { font-family: "Cascadia Code", monospace; font-size: .73rem; opacity: .7; }
+  .tab-panel {
+    display: none; background: #0d1117;
+    border-radius: 0 0 10px 10px; overflow: auto; max-height: 72vh;
+  }
+  .tab-panel.active { display: block; }
+  .tab-panel pre { margin: 0; }
+  .tab-panel code { font-family: "JetBrains Mono", "Cascadia Code", "Fira Code", monospace !important; font-size: .8rem !important; line-height: 1.65 !important; }
+
+  /* ── Footer ──────────────────────────────────────── */
+  footer {
+    text-align: center; padding: 2rem; color: #94a3b8; font-size: .85rem;
+    border-top: 1px solid #e2e8f0; background: white; margin-top: 1rem;
+  }
+  footer code { background: #f1f5f9; padding: 1px 5px; border-radius: 4px; font-size: .8rem; }
+</style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────── -->
+<header>
+  <div class="logo">
+    <span class="logo-icon">🔌</span>
+    <span class="logo-text">PSPC Viewer <span class="logo-ver">v1.3</span></span>
+  </div>
+  <div style="display:flex;gap:.5rem;">
+    <a href="/download/PSPCViewer_Setup.exe" class="btn-dl-hdr" style="background:#059669;">&#11015; Setup .exe</a>
+    <a href="/download/PSPCViewer.exe" class="btn-dl-hdr">&#11015; Portable .exe</a>
+  </div>
+</header>
+
+<!-- ── Hero ────────────────────────────────────────────────────── -->
+<div class="hero">
+  <h1>PSPC <span>Viewer</span></h1>
+  <p class="sub">
+    Open, browse, search, and export Autodesk Plant&nbsp;3D
+    <code>.pspc</code> files — SQLite databases with piping &amp; instrumentation data.
+  </p>
+  <div class="badges">
+    <span class="badge">Python 3.10+</span>
+    <span class="badge">tkinter</span>
+    <span class="badge">SQLite</span>
+    <span class="badge">Windows .exe</span>
+    <span class="badge">Open Source</span>
+  </div>
+  <div class="dl-btns">
+    <a href="/download/PSPCViewer_Setup.exe" class="btn-dl btn-setup">
+      <span class="ico">&#11015;</span>
+      <span>Download Setup<span class="sub-lbl">PSPCViewer_Setup.exe &nbsp;·&nbsp; Installer</span></span>
+    </a>
+    <a href="/download/PSPCViewer.exe" class="btn-dl">
+      <span class="ico">&#11015;</span>
+      <span>Download Portable<span class="sub-lbl">PSPCViewer.exe &nbsp;·&nbsp; Single file, no install</span></span>
+    </a>
+  </div>
+  <p class="dl-note">Windows &nbsp;·&nbsp; No Python required</p>
+  <p class="dl-warn">
+    ⚠ Chrome may save the file as <strong>PSPCViewer.exe.crdownload</strong> — see
+    <a href="#troubleshooting" style="color:#fcd34d;">Troubleshooting</a> below.
+  </p>
+
+  <div class="run-box">
+    <span class="cmt"># Or run from source (Python 3.10+)</span><br>
+    <span class="cmd">pip install pandas openpyxl</span><br>
+    <span class="cmd">python main.py</span>
+  </div>
+</div>
+
+<!-- ── Main content ─────────────────────────────────────────────── -->
+<main>
+
+  <!-- Features -->
+  <h2 class="sec-title">Features</h2>
+  <div class="features">
+    <div class="feature-card"><span class="feature-icon">📂</span><strong>Open .pspc files</strong><p>File dialog — supports all SQLite-based formats</p></div>
+      <div class="feature-card"><span class="feature-icon">📋</span><strong>Browse all tables</strong><p>Left panel lists every table in the database</p></div>
+      <div class="feature-card"><span class="feature-icon">🔍</span><strong>Real-time search</strong><p>Instant row filtering inside any table</p></div>
+      <div class="feature-card"><span class="feature-icon">📊</span><strong>Export to Excel</strong><p>All tables → one .xlsx workbook (Ctrl+E)</p></div>
+      <div class="feature-card"><span class="feature-icon">🔌</span><strong>Port Connections</strong><p>Auto-join S1 (EngineeringItems) and S2–S4 (Port table)</p></div>
+      <div class="feature-card"><span class="feature-icon">👁️</span><strong>Column management</strong><p>Hide / show / reorder columns; settings persist per table</p></div>
+      <div class="feature-card"><span class="feature-icon">↕️</span><strong>Sorting</strong><p>Click any column header to sort ascending / descending</p></div>
+      <div class="feature-card"><span class="feature-icon">💾</span><strong>Persistent settings</strong><p>Window size, last file, column preferences saved across restarts</p></div>
+  </div>
+
+  <!-- Keyboard shortcuts -->
+  <h2 class="sec-title">Keyboard Shortcuts</h2>
+  <div class="shortcuts">
+    <table>
+      <tr><td>Ctrl+O</td><td>Open .pspc / SQLite file</td></tr>
+      <tr><td>Ctrl+E</td><td>Export all tables to Excel (.xlsx)</td></tr>
+      <tr><td>F5</td><td>Reload current table</td></tr>
+      <tr><td>Double-click cell</td><td>Edit cell inline</td></tr>
+      <tr><td>Click header</td><td>Sort column ascending / descending (&#9650;&#9660;)</td></tr>
+      <tr><td>Drag header L / R</td><td>Reorder column</td></tr>
+      <tr><td>Right-click header</td><td>Hide column &nbsp;/&nbsp; open column manager</td></tr>
+    </table>
+  </div>
+
+  <!-- Project structure -->
+  <h2 class="sec-title">Project Structure</h2>
+  <div class="struct-box">
+SQLreader_job/<br>
+&#9474;<br>
+&#9500;&#9472;&#9472; <span class="hl">main.py</span>       <span class="dim">&larr; entry point; starts the app</span><br>
+&#9474;<br>
+&#9500;&#9472;&#9472; <span class="hl">constants.py</span>  <span class="dim">&larr; shared constants (EI_VIEW_COLS, HIDDEN_COLS, …)</span><br>
+&#9500;&#9472;&#9472; <span class="hl">settings.py</span>   <span class="dim">&larr; Settings (JSON) + SettingsDialog</span><br>
+&#9500;&#9472;&#9472; <span class="hl">dialogs.py</span>    <span class="dim">&larr; ColumnDialog (show / hide / reorder columns)</span><br>
+&#9500;&#9472;&#9472; <span class="hl">widgets.py</span>    <span class="dim">&larr; CellEditor (inline cell editing)</span><br>
+&#9474;<br>
+&#9500;&#9472;&#9472; <span class="hl">db_helper.py</span>  <span class="dim">&larr; DbHelper — all SQL here, no tkinter</span><br>
+&#9500;&#9472;&#9472; <span class="hl">viewer.py</span>     <span class="dim">&larr; PSPCViewer — all tkinter here, no SQL</span><br>
+&#9474;<br>
+&#9492;&#9472;&#9472; dist/<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&#9492;&#9472;&#9472; PSPCViewer.exe  <span class="dim">&larr; standalone Windows executable (PyInstaller)</span>
+  </div>
+
+  <!-- Source code tabs -->
+  <div class="source-section">
+    <h2 class="sec-title">Source Code</h2>
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="showTab('main.py')" id="btn-main.py"><span class="tab-label">Entry Point</span><span class="tab-fname">main.py</span></button>
+      <button class="tab-btn" onclick="showTab('constants.py')" id="btn-constants.py"><span class="tab-label">Constants</span><span class="tab-fname">constants.py</span></button>
+      <button class="tab-btn" onclick="showTab('db_helper.py')" id="btn-db_helper.py"><span class="tab-label">DB Layer</span><span class="tab-fname">db_helper.py</span></button>
+      <button class="tab-btn" onclick="showTab('settings.py')" id="btn-settings.py"><span class="tab-label">Settings</span><span class="tab-fname">settings.py</span></button>
+      <button class="tab-btn" onclick="showTab('dialogs.py')" id="btn-dialogs.py"><span class="tab-label">Dialogs</span><span class="tab-fname">dialogs.py</span></button>
+      <button class="tab-btn" onclick="showTab('widgets.py')" id="btn-widgets.py"><span class="tab-label">Widgets</span><span class="tab-fname">widgets.py</span></button>
+      <button class="tab-btn" onclick="showTab('viewer.py')" id="btn-viewer.py"><span class="tab-label">Viewer (UI)</span><span class="tab-fname">viewer.py</span></button>
+    </div>
+    <div class="tab-panel active" id="panel-main.py"><pre><code class="language-python">&quot;&quot;&quot;
+main.py — entry point for PSPC Viewer.
+
+Run:
+    python main.py
+    python main.py PS315.pspc          # open a file directly
+
+Build standalone .exe:
+    build_exe.bat                      # uses PyInstaller
+&quot;&quot;&quot;
+import tkinter as tk
+import os
+import sys
+
+from viewer import PSPCViewer
+
+
+def main():
+    root = tk.Tk()
+
+    # Optional window icon (no crash if missing)
+    icon = os.path.join(getattr(sys, &quot;_MEIPASS&quot;, os.path.dirname(__file__)), &quot;icon.ico&quot;)
+    try:
+        root.iconbitmap(icon)
+    except Exception:
+        pass
+
+    app = PSPCViewer(root)
+
+    # Support drag-and-drop / OS file association / CLI argument
+    if len(sys.argv) &gt; 1 and os.path.isfile(sys.argv[1]):
+        root.after(300, lambda: app._open(sys.argv[1]))
+
+    root.mainloop()
+
+
+if __name__ == &quot;__main__&quot;:
+    main()
+</code></pre></div>
+      <div class="tab-panel" id="panel-constants.py"><pre><code class="language-python">&quot;&quot;&quot;
+constants.py — shared constants for PSPC Viewer
+No imports beyond the stdlib; safe to import from anywhere.
+&quot;&quot;&quot;
+import os
+
+APP_VERSION = &quot;1.3&quot;
+
+# ── Settings file location ─────────────────────────────────────────────────
+SETTINGS_DIR  = os.path.join(os.path.expanduser(&quot;~&quot;), &quot;.pspcviewer&quot;)
+SETTINGS_FILE = os.path.join(SETTINGS_DIR, &quot;config.json&quot;)
+
+# ── Plant Vault Projects root (toolbar quick-open) ─────────────────────────
+PLANT_VAULT_ROOT = os.path.join(os.path.expanduser(&quot;~&quot;), &quot;Documents&quot;, &quot;Plant Vault Projects&quot;, &quot;Projects&quot;)
+
+# ── Default &#x27;Components&#x27; simplified table list ─────────────────────────────
+DEFAULT_SIMPLIFIED: list[str] = [
+    &quot;EngineeringItems&quot;, &quot;BlindDisk&quot;, &quot;BlindFlange&quot;, &quot;BoltSet&quot;, &quot;Clamp&quot;,
+    &quot;Coupling&quot;, &quot;Cross&quot;, &quot;Elbow&quot;, &quot;Fasteners&quot;, &quot;Flange&quot;, &quot;Gasket&quot;,
+    &quot;Instrument&quot;, &quot;Olet&quot;, &quot;Pipe&quot;, &quot;PipeRunComponent&quot;, &quot;Reducer&quot;,
+    &quot;SingleBranchFitting&quot;, &quot;StubEnd&quot;, &quot;Swage&quot;, &quot;Tee&quot;, &quot;Valve&quot;,
+    &quot;ValveActuator&quot;, &quot;ValveActuatorMap&quot;,
+]
+
+# ── EngineeringItems smart-view columns ────────────────────────────────────
+# Format: (db_column_name, display_label, pixel_width)
+EI_VIEW_COLS: list[tuple] = [
+    (&quot;PartFamilyLongDesc&quot;,  &quot;Description&quot;,    280),
+    (&quot;PartCategory&quot;,         &quot;Category&quot;,       100),
+    (&quot;NominalDiameter&quot;,      &quot;Nom. Ø&quot;,          70),
+    (&quot;NominalUnit&quot;,          &quot;Unit&quot;,             50),
+    (&quot;EndType&quot;,              &quot;End Type&quot;,         80),
+    (&quot;PressureClass&quot;,        &quot;Press.Class&quot;,      85),
+    (&quot;Schedule&quot;,             &quot;Schedule&quot;,         70),
+    (&quot;WallThickness&quot;,        &quot;Wall Thk&quot;,         70),
+    (&quot;ConnectionPortCount&quot;,  &quot;Ports&quot;,            55),
+    (&quot;Manufacturer&quot;,         &quot;Manufacturer&quot;,    140),
+    (&quot;ItemCode&quot;,             &quot;Item Code&quot;,       100),
+    (&quot;Material&quot;,             &quot;Material&quot;,        100),
+    (&quot;DesignStd&quot;,            &quot;Design Std&quot;,      110),
+    (&quot;Weight&quot;,               &quot;Weight&quot;,           70),
+    (&quot;WeightUnit&quot;,           &quot;Wt. Unit&quot;,         65),
+]
+
+# ── Port detail bottom-panel columns ───────────────────────────────────────
+PORT_DETAIL_COLS: list[tuple] = [
+    (&quot;PortName&quot;,        &quot;Port&quot;,          65),
+    (&quot;NominalDiameter&quot;, &quot;Nom. Ø&quot;,        75),
+    (&quot;NominalUnit&quot;,     &quot;Unit&quot;,           50),
+    (&quot;EndType&quot;,         &quot;End Type&quot;,       80),
+    (&quot;PressureClass&quot;,   &quot;Press.Class&quot;,    85),
+    (&quot;Schedule&quot;,        &quot;Schedule&quot;,       70),
+    (&quot;WallThickness&quot;,   &quot;Wall Thk&quot;,       70),
+    (&quot;MatchingPipeOd&quot;,  &quot;Match. OD&quot;,      90),
+    (&quot;FlangeStd&quot;,       &quot;Flange Std&quot;,     90),
+    (&quot;GasketStd&quot;,       &quot;Gasket Std&quot;,     80),
+    (&quot;Facing&quot;,          &quot;Facing&quot;,         70),
+    (&quot;FlangeThickness&quot;, &quot;Flange Thk&quot;,     80),
+    (&quot;EngagementLength&quot;,&quot;Engage Len&quot;,     85),
+    (&quot;LengthUnit&quot;,      &quot;Len Unit&quot;,       65),
+]
+
+# ── Columns always hidden in raw view (binary GUIDs / internals) ───────────
+HIDDEN_COLS: set[str] = {
+    &quot;PnPGuid&quot;, &quot;PnPTimestamp&quot;, &quot;SizeRecordId&quot;, &quot;PartFamilyId&quot;,
+    &quot;CatalogPartFamilyId&quot;, &quot;CatalogPartId&quot;, &quot;ValveBodyFamilyId&quot;,
+    &quot;ValveBodyPartSizeId&quot;, &quot;ActuatorFamilyId&quot;, &quot;ActuatorPartSizeId&quot;,
+    &quot;CatalogId&quot;, &quot;ContentGeometryParamDefinition&quot;,
+    &quot;ContentIsoSymbolDefinition&quot;, &quot;ContentGeometryTemplate&quot;,
+}
+
+# ── Keywords used to auto-detect port-related tables ──────────────────────
+PORT_KW: tuple = (
+    &quot;port&quot;, &quot;connect&quot;, &quot;nozzle&quot;, &quot;endpoint&quot;, &quot;endtype&quot;,
+    &quot;end_type&quot;, &quot;branch&quot;, &quot;open_end&quot;,
+)
+</code></pre></div>
+      <div class="tab-panel" id="panel-db_helper.py"><pre><code class="language-python">&quot;&quot;&quot;
+db_helper.py — pure data layer for PSPC Viewer.
+
+DbHelper wraps a sqlite3 connection and exposes clean methods that return
+plain Python data (lists, dicts).  No tkinter imports here.
+&quot;&quot;&quot;
+import sqlite3
+from collections import defaultdict
+from typing import Optional
+
+from constants import (
+    EI_VIEW_COLS, PORT_DETAIL_COLS, HIDDEN_COLS, PORT_KW,
+)
+
+
+def safe_str(v) -&gt; str:
+    &quot;&quot;&quot;Convert any SQLite value to a display-safe string.&quot;&quot;&quot;
+    if v is None:                         return &quot;&quot;
+    if isinstance(v, (bytes, bytearray)): return v.hex().upper()
+    return str(v)
+
+
+def _is_blob_col(sample: list) -&gt; bool:
+    if not sample:
+        return False
+    return sum(1 for v in sample if isinstance(v, (bytes, bytearray))) &gt; len(sample) * 0.5
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+class DbHelper:
+    &quot;&quot;&quot;
+    All database I/O for the PSPC Viewer lives here.
+
+    Every public method returns plain Python data so the UI layer (viewer.py)
+    stays free of SQL and sqlite3 concerns.
+    &quot;&quot;&quot;
+
+    def __init__(self, conn: sqlite3.Connection):
+        self.conn = conn
+        self._tables: list[str] = []
+        self._refresh_table_list()
+
+    # ── Table introspection ───────────────────────────────────────────────────
+
+    def _refresh_table_list(self):
+        cur = self.conn.cursor()
+        cur.execute(
+            &quot;SELECT name FROM sqlite_master WHERE type=&#x27;table&#x27; ORDER BY name COLLATE NOCASE&quot;)
+        self._tables = [r[0] for r in cur.fetchall()]
+
+    @property
+    def all_tables(self) -&gt; list[str]:
+        return self._tables
+
+    def col_exists(self, table: str, col: str) -&gt; bool:
+        try:
+            cur = self.conn.cursor()
+            cur.execute(f&#x27;PRAGMA table_info(&quot;{table}&quot;)&#x27;)
+            return any(c[1] == col for c in cur.fetchall())
+        except Exception:
+            return False
+
+    def _table_cols(self, table: str) -&gt; list[str]:
+        cur = self.conn.cursor()
+        cur.execute(f&#x27;PRAGMA table_info(&quot;{table}&quot;)&#x27;)
+        return [c[1] for c in cur.fetchall()]
+
+    # ── Raw table data ────────────────────────────────────────────────────────
+
+    def table_raw(self, name: str, show_hidden: bool = False
+                  ) -&gt; tuple[list[str], list[list]]:
+        &quot;&quot;&quot;
+        Return (visible_cols, rows) for a raw SQL table.
+        Hidden/blob columns are filtered out unless show_hidden is True.
+        &quot;&quot;&quot;
+        cur = self.conn.cursor()
+        cur.execute(f&#x27;SELECT * FROM &quot;{name}&quot;&#x27;)
+        all_cols = [d[0] for d in cur.description]
+        all_rows = [list(r) for r in cur.fetchall()]
+
+        if show_hidden:
+            vis = list(range(len(all_cols)))
+        else:
+            vis = [i for i, c in enumerate(all_cols) if c not in HIDDEN_COLS]
+            if all_rows:
+                vis = [i for i in vis
+                       if not _is_blob_col([r[i] for r in all_rows[:20]])]
+
+        cols = [all_cols[i] for i in vis]
+        rows = [[r[i] for i in vis] for r in all_rows]
+        return cols, rows
+
+    # ── EngineeringItems smart view ───────────────────────────────────────────
+
+    def ei_view(self, show_hidden: bool = False
+                ) -&gt; tuple[list[str], list[list], list[Optional[int]]]:
+        &quot;&quot;&quot;
+        Return (col_labels, rows, pnpids) for the EngineeringItems smart view.
+        Shows all columns (same filtering as table_raw); PnPID is tracked
+        separately for the port panel but not included as a visible column.
+        &quot;&quot;&quot;
+        cur = self.conn.cursor()
+        cur.execute(&#x27;SELECT * FROM &quot;EngineeringItems&quot;&#x27;)
+        all_cols = [d[0] for d in cur.description]
+        all_rows = [list(r) for r in cur.fetchall()]
+
+        pnpid_idx = all_cols.index(&quot;PnPID&quot;) if &quot;PnPID&quot; in all_cols else None
+        pnpids    = [
+            (int(r[pnpid_idx]) if r[pnpid_idx] is not None else None)
+            for r in all_rows
+        ] if pnpid_idx is not None else [None] * len(all_rows)
+
+        if show_hidden:
+            vis = [i for i in range(len(all_cols)) if i != pnpid_idx]
+        else:
+            vis = [i for i, c in enumerate(all_cols)
+                   if c not in HIDDEN_COLS and i != pnpid_idx]
+            if all_rows:
+                vis = [i for i in vis
+                       if not _is_blob_col([r[i] for r in all_rows[:20]])]
+
+        cols = [all_cols[i] for i in vis]
+        rows = [[r[i] for i in vis] for r in all_rows]
+        return cols, rows, pnpids
+
+    # ── Component-specific join view ──────────────────────────────────────────
+
+    def comp_join(self, table: str
+                  ) -&gt; tuple[list[str], list[list], list[Optional[int]]]:
+        &quot;&quot;&quot;
+        Return (col_labels, rows, pnpids) for a component table joined with
+        EngineeringItems.  Handles tables that have only a PnPID column
+        (e.g. Fasteners, BlindDisk) without SQL errors.
+        &quot;&quot;&quot;
+        cur       = self.conn.cursor()
+        all_t     = self._table_cols(table)
+        t_vis     = [c for c in all_t if c not in HIDDEN_COLS and c != &quot;PnPID&quot;]
+
+        # Drop blob columns based on a data sample
+        if t_vis:
+            cur.execute(f&#x27;SELECT * FROM &quot;{table}&quot; LIMIT 20&#x27;)
+            sample = cur.fetchall()
+            if sample:
+                t_vis = [c for c in t_vis
+                         if not _is_blob_col([r[all_t.index(c)] for r in sample])]
+
+        has_ei     = &quot;EngineeringItems&quot; in self._tables
+        sel_parts  = [&quot;t.PnPID&quot;]
+        col_labels = []
+
+        for c in t_vis:
+            sel_parts.append(f&#x27;t.&quot;{c}&quot;&#x27;)
+            col_labels.append(c)
+
+        if has_ei:
+            used_labels = set(col_labels)
+
+            # Always-pinned EI columns (added before the variable extras)
+            pinned = [
+                (&quot;PartFamilyLongDesc&quot;, &quot;Description&quot;),
+                (&quot;ItemCode&quot;,           &quot;Item Code&quot;),
+            ]
+            for db_col, lbl in pinned:
+                if db_col not in t_vis and lbl not in used_labels:
+                    sel_parts.append(f&#x27;ei.&quot;{db_col}&quot; AS &quot;{lbl}&quot;&#x27;)
+                    col_labels.append(lbl)
+                    used_labels.add(lbl)
+
+            # Additional EI columns (up to 7), skipping already-pinned ones
+            pinned_db = {db_col for db_col, _ in pinned}
+            ei_extra = [c for c, lbl, _ in EI_VIEW_COLS
+                        if c not in t_vis and c not in pinned_db
+                        and lbl not in used_labels][:7]
+            for c in ei_extra:
+                lbl = next((l for dc, l, _ in EI_VIEW_COLS if dc == c), c)
+                sel_parts.append(f&#x27;ei.&quot;{c}&quot; AS &quot;{lbl}&quot;&#x27;)
+                col_labels.append(lbl)
+            join = (f&#x27;FROM &quot;{table}&quot; t &#x27;
+                    f&#x27;LEFT JOIN &quot;EngineeringItems&quot; ei ON t.PnPID = ei.PnPID&#x27;)
+        else:
+            join = f&#x27;FROM &quot;{table}&quot; t&#x27;
+
+        cur.execute(f&#x27;SELECT {&quot;, &quot;.join(sel_parts)} {join}&#x27;)
+        raw    = [list(r) for r in cur.fetchall()]
+        pnpids = [int(r[0]) if r[0] is not None else None for r in raw]
+        rows   = [r[1:] for r in raw]
+        return col_labels, rows, pnpids
+
+    # ── Port map ──────────────────────────────────────────────────────────────
+
+    def port_map(self) -&gt; dict[int, list[list]]:
+        &quot;&quot;&quot;
+        Return {pnpid: [port_row, …]} for all components that have S2+ ports
+        in the Port table (via PartPort).  Returns empty dict if tables are absent.
+        &quot;&quot;&quot;
+        result: dict[int, list[list]] = defaultdict(list)
+        if &quot;PartPort&quot; not in self._tables or &quot;Port&quot; not in self._tables:
+            return result
+        try:
+            cols_sql = &quot;, &quot;.join(f&#x27;p.&quot;{c}&quot;&#x27; for c, _, _ in PORT_DETAIL_COLS)
+            rows     = self.conn.execute(
+                f&#x27;SELECT pp.Part, {cols_sql} &#x27;
+                f&#x27;FROM PartPort pp JOIN Port p ON p.PnPID = pp.Port &#x27;
+                f&#x27;ORDER BY pp.Part, p.PortName&#x27;
+            ).fetchall()
+            for row in rows:
+                result[int(row[0])].append(list(row[1:]))
+        except Exception:
+            pass
+        return result
+
+    def s1_port(self, pnpid: int) -&gt; Optional[list]:
+        &quot;&quot;&quot;
+        Return the S1 (primary) port data stored inline in EngineeringItems,
+        or None if the component is not found.
+        &quot;&quot;&quot;
+        if &quot;EngineeringItems&quot; not in self._tables:
+            return None
+        try:
+            col_sql = &quot;, &quot;.join(f&#x27;&quot;{c}&quot;&#x27; for c, _, _ in PORT_DETAIL_COLS)
+            row     = self.conn.execute(
+                f&#x27;SELECT {col_sql} FROM &quot;EngineeringItems&quot; WHERE PnPID = ?&#x27;,
+                (pnpid,)
+            ).fetchone()
+            return list(row) if row else None
+        except Exception:
+            return None
+
+    # ── All ports union (Port Connections tab) ────────────────────────────────
+
+    def all_ports(self) -&gt; tuple[list[str], list[list]]:
+        &quot;&quot;&quot;
+        Return (col_labels, rows) combining S1 ports (from EngineeringItems)
+        and S2+ ports (from Port table via PartPort) in one unified view.
+        Falls back to a raw union of any port-keyword tables if the Plant 3D
+        schema is not present.
+        &quot;&quot;&quot;
+        tbl_lc = {t.lower(): t for t in self._tables}
+
+        if all(k in tbl_lc for k in (&quot;engineeringitems&quot;, &quot;partport&quot;, &quot;port&quot;)):
+            return self._all_ports_plant3d(tbl_lc)
+        return self._all_ports_fallback(tbl_lc)
+
+    def _all_ports_plant3d(self, tbl_lc: dict) -&gt; tuple[list[str], list[list]]:
+        ei, pp, pt = (tbl_lc[&quot;engineeringitems&quot;],
+                      tbl_lc[&quot;partport&quot;], tbl_lc[&quot;port&quot;])
+        q = f&quot;&quot;&quot;
+        SELECT
+            ei.PnPID             AS &quot;Part ID&quot;,
+            ei.PartFamilyLongDesc AS &quot;Component&quot;,
+            ei.PortName           AS &quot;Port&quot;,
+            ei.NominalDiameter    AS &quot;Nom. Ø&quot;,
+            ei.NominalUnit        AS &quot;Unit&quot;,
+            ei.EndType            AS &quot;End Type&quot;,
+            ei.PressureClass      AS &quot;Press.Class&quot;,
+            ei.Schedule           AS &quot;Schedule&quot;,
+            ei.WallThickness      AS &quot;Wall Thk&quot;,
+            ei.MatchingPipeOd     AS &quot;Match. OD&quot;,
+            ei.FlangeStd          AS &quot;Flange Std&quot;,
+            &#x27;EI (S1)&#x27;             AS &quot;Source&quot;
+        FROM &quot;{ei}&quot; ei WHERE ei.PortName IS NOT NULL
+        UNION ALL
+        SELECT
+            ei.PnPID,
+            ei.PartFamilyLongDesc,
+            p.PortName,
+            p.NominalDiameter, p.NominalUnit, p.EndType,
+            p.PressureClass,   p.Schedule,    p.WallThickness,
+            p.MatchingPipeOd,  p.FlangeStd,
+            &#x27;Port table (S2+)&#x27;
+        FROM &quot;{pt}&quot; p
+        JOIN &quot;{pp}&quot; pp2 ON pp2.Port  = p.PnPID
+        JOIN &quot;{ei}&quot; ei  ON ei.PnPID  = pp2.Part
+        ORDER BY 2, 1, 3
+        &quot;&quot;&quot;
+        cur  = self.conn.cursor()
+        cur.execute(q)
+        cols = [d[0] for d in cur.description]
+        rows = [list(r) for r in cur.fetchall()]
+        return cols, rows
+
+    def _all_ports_fallback(self, tbl_lc: dict) -&gt; tuple[list[str], list[list]]:
+        port_tables = [orig for lc, orig in tbl_lc.items()
+                       if any(kw in lc for kw in PORT_KW)]
+        if not port_tables:
+            return [], []
+        cols: list[str] | None = None
+        rows: list[list] = []
+        cur = self.conn.cursor()
+        for t in port_tables:
+            cur.execute(f&#x27;SELECT * FROM &quot;{t}&quot;&#x27;)
+            if cols is None:
+                cols = [&quot;⊞ Table&quot;] + [d[0] for d in cur.description]
+            for row in cur.fetchall():
+                rows.append([t] + list(row))
+        return (cols or []), rows
+
+    # ── Write changes back to DB ──────────────────────────────────────────────
+
+    def save_changes(self, pending: dict) -&gt; None:
+        &quot;&quot;&quot;
+        Write pending edits to the database and commit.
+
+        pending format: {table_name: {row_index: {col_name: new_value}}}
+        row_index is 0-based and corresponds to the rowid order at load time.
+        &quot;&quot;&quot;
+        cur = self.conn.cursor()
+        for tbl, rows in pending.items():
+            cur.execute(f&#x27;SELECT rowid FROM &quot;{tbl}&quot;&#x27;)
+            rowid_map = [r[0] for r in cur.fetchall()]
+            for row_idx, changes in rows.items():
+                if row_idx &gt;= len(rowid_map):
+                    continue
+                rowid = rowid_map[row_idx]
+                for col, val in changes.items():
+                    cur.execute(
+                        f&#x27;UPDATE &quot;{tbl}&quot; SET &quot;{col}&quot; = ? WHERE rowid = ?&#x27;,
+                        (val, rowid))
+        self.conn.commit()
+
+    # ── Export to Excel ───────────────────────────────────────────────────────
+
+    def export_excel(self, dest_path: str) -&gt; None:
+        &quot;&quot;&quot;Export every table to a sheet in dest_path (.xlsx).&quot;&quot;&quot;
+        import pandas as pd
+
+        with pd.ExcelWriter(dest_path, engine=&quot;openpyxl&quot;) as wr:
+            for tbl in self._tables:
+                df = pd.read_sql_query(f&#x27;SELECT * FROM &quot;{tbl}&quot;&#x27;, self.conn)
+                for col in df.columns:
+                    if df[col].dtype == object:
+                        df[col] = df[col].apply(
+                            lambda v: v.hex().upper()
+                            if isinstance(v, (bytes, bytearray)) else v)
+                df.to_excel(wr, sheet_name=tbl[:31], index=False)
+</code></pre></div>
+      <div class="tab-panel" id="panel-settings.py"><pre><code class="language-python">&quot;&quot;&quot;
+settings.py — persistent user preferences + the Settings configuration dialog.
+&quot;&quot;&quot;
+import json
+import os
+import tkinter as tk
+from tkinter import ttk
+
+from constants import SETTINGS_DIR, SETTINGS_FILE, DEFAULT_SIMPLIFIED
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  Settings  (thin JSON wrapper)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class Settings:
+    &quot;&quot;&quot;Load / save user preferences from ~/.pspcviewer/config.json.&quot;&quot;&quot;
+
+    _DEFAULTS: dict = {
+        &quot;simplified_tables&quot;: DEFAULT_SIMPLIFIED,
+        &quot;last_file&quot;:         None,
+        &quot;show_hidden_cols&quot;:  False,
+        &quot;geometry&quot;:          &quot;1420x900&quot;,
+        &quot;panel_mode&quot;:        &quot;components&quot;,   # &quot;all&quot; | &quot;components&quot;
+        &quot;column_prefs&quot;:      {},             # {table: {hidden: [...], order: [...]}}
+    }
+
+    def __init__(self):
+        self._d = dict(self._DEFAULTS)
+        self._load()
+
+    def _load(self):
+        try:
+            with open(SETTINGS_FILE) as f:
+                self._d.update(json.load(f))
+        except (FileNotFoundError, json.JSONDecodeError):
+            pass
+
+    def save(self):
+        os.makedirs(SETTINGS_DIR, exist_ok=True)
+        with open(SETTINGS_FILE, &quot;w&quot;) as f:
+            json.dump(self._d, f, indent=2)
+
+    def __getitem__(self, k):
+        return self._d.get(k, self._DEFAULTS.get(k))
+
+    def __setitem__(self, k, v):
+        self._d[k] = v
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+#  SettingsDialog  (configure the Components simplified table list)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SettingsDialog(tk.Toplevel):
+    &quot;&quot;&quot;Lets the user choose which tables appear in the &#x27;Components&#x27; view.&quot;&quot;&quot;
+
+    def __init__(self, parent: tk.Tk, settings: Settings, db_tables: list[str]):
+        super().__init__(parent)
+        self.title(&quot;⚙  Configure &#x27;Components&#x27; view&quot;)
+        self.geometry(&quot;440x580&quot;)
+        self.resizable(True, True)
+        self.transient(parent)
+        self.grab_set()
+
+        self.settings = settings
+        self.result: list[str] | None = None   # set to new list on Save
+
+        current = set(settings[&quot;simplified_tables&quot;])
+        known   = set(db_tables)
+        # Tables saved from before that are no longer in this DB
+        extra   = [t for t in current if t not in known]
+        display = db_tables + extra
+
+        # ── Header ───────────────────────────────────────────
+        ttk.Label(self,
+                  text=&quot;Tables visible in &#x27;Components&#x27; view&quot;,
+                  font=(&quot;Segoe UI&quot;, 10, &quot;bold&quot;)).pack(anchor=&quot;w&quot;, padx=12, pady=(10, 2))
+        ttk.Label(self,
+                  text=&quot;Grey = not in current database (remembered from before).&quot;,
+                  foreground=&quot;#888&quot;).pack(anchor=&quot;w&quot;, padx=12, pady=(0, 6))
+
+        # ── Scrollable checklist ──────────────────────────────
+        outer  = ttk.Frame(self)
+        outer.pack(fill=tk.BOTH, expand=True, padx=12, pady=4)
+        canvas = tk.Canvas(outer, bg=&quot;white&quot;, highlightthickness=0)
+        vsb    = ttk.Scrollbar(outer, orient=tk.VERTICAL, command=canvas.yview)
+        inner  = ttk.Frame(canvas)
+        inner.bind(&quot;&lt;Configure&gt;&quot;,
+                   lambda _: canvas.configure(scrollregion=canvas.bbox(&quot;all&quot;)))
+        canvas.create_window((0, 0), window=inner, anchor=&quot;nw&quot;)
+        canvas.configure(yscrollcommand=vsb.set)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(fill=tk.BOTH, expand=True)
+        canvas.bind(&quot;&lt;MouseWheel&gt;&quot;,
+                    lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), &quot;units&quot;))
+
+        self._vars: dict[str, tk.BooleanVar] = {}
+        for t in display:
+            var = tk.BooleanVar(value=(t in current))
+            self._vars[t] = var
+            fg = &quot;#000&quot; if t in known else &quot;#aaa&quot;
+            tk.Checkbutton(inner, text=t, variable=var, foreground=fg,
+                           bg=&quot;white&quot;, font=(&quot;Consolas&quot;, 9)).pack(anchor=&quot;w&quot;, padx=8, pady=1)
+
+        # ── Buttons ───────────────────────────────────────────
+        bf = ttk.Frame(self)
+        bf.pack(fill=tk.X, padx=12, pady=8)
+        ttk.Button(bf, text=&quot;All&quot;,
+                   command=lambda: [v.set(True)  for v in self._vars.values()]).pack(side=tk.LEFT, padx=2)
+        ttk.Button(bf, text=&quot;None&quot;,
+                   command=lambda: [v.set(False) for v in self._vars.values()]).pack(side=tk.LEFT, padx=2)
+        ttk.Button(bf, text=&quot;Default&quot;,
+                   command=self._reset).pack(side=tk.LEFT, padx=2)
+        ttk.Button(bf, text=&quot;Cancel&quot;,
+                   command=self.destroy).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(bf, text=&quot;Save&quot;,
+                   command=self._save).pack(side=tk.RIGHT, padx=2)
+
+    def _reset(self):
+        ds = set(DEFAULT_SIMPLIFIED)
+        for t, v in self._vars.items():
+            v.set(t in ds)
+
+    def _save(self):
+        self.result = [t for t, v in self._vars.items() if v.get()]
+        self.destroy()
+</code></pre></div>
+      <div class="tab-panel" id="panel-dialogs.py"><pre><code class="language-python">&quot;&quot;&quot;
+dialogs.py — application-level dialogs (not settings-related).
+
+Currently contains:
+  ColumnDialog  — show / hide / reorder columns for the active table view
+&quot;&quot;&quot;
+import tkinter as tk
+from tkinter import ttk, messagebox
+
+
+class ColumnDialog(tk.Toplevel):
+    &quot;&quot;&quot;
+    Two-panel dialog: Visible (left) ↔ Hidden (right).
+    Move items with the arrow buttons; reorder Visible with ▲ / ▼.
+    &quot;&quot;&quot;
+
+    def __init__(self, parent: tk.Tk, tree: ttk.Treeview):
+        super().__init__(parent)
+        self.title(&quot;⊞  Show / Hide Columns&quot;)
+        self.geometry(&quot;540x400&quot;)
+        self.minsize(420, 300)
+        self.resizable(True, True)
+        self.transient(parent)
+        self.grab_set()
+
+        self.tree   = tree
+        self.result: list[str] | None = None
+
+        all_cols = list(tree[&quot;columns&quot;])
+        cur_disp = self._get_disp(tree)
+        cur_set  = set(cur_disp)
+
+        shown  = list(cur_disp)
+        hidden = [c for c in all_cols if c not in cur_set]
+
+        ttk.Label(self,
+                  text=&quot;Visible columns (left) will be shown in that order.&quot;,
+                  foreground=&quot;#555&quot;).pack(anchor=&quot;w&quot;, padx=12, pady=(8, 4))
+
+        # ── Main three-column layout ──────────────────────────────────────────
+        mid = ttk.Frame(self)
+        mid.pack(fill=tk.BOTH, expand=True, padx=12, pady=2)
+        mid.columnconfigure(0, weight=1)
+        mid.columnconfigure(2, weight=1)
+        mid.rowconfigure(1, weight=1)
+
+        # Left panel — Visible
+        ttk.Label(mid, text=&quot;Visible&quot;, font=(&quot;Segoe UI&quot;, 9, &quot;bold&quot;)).grid(
+            row=0, column=0, pady=(0, 2))
+        lf   = ttk.Frame(mid)
+        lf.grid(row=1, column=0, sticky=&quot;nsew&quot;)
+        lvsb = ttk.Scrollbar(lf)
+        lvsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.shown_lb = tk.Listbox(
+            lf, yscrollcommand=lvsb.set, selectmode=tk.EXTENDED,
+            font=(&quot;Consolas&quot;, 9), activestyle=&quot;dotbox&quot;)
+        self.shown_lb.pack(fill=tk.BOTH, expand=True)
+        lvsb.config(command=self.shown_lb.yview)
+        self.shown_lb.bind(&quot;&lt;MouseWheel&gt;&quot;,
+            lambda e: self.shown_lb.yview_scroll(int(-e.delta / 120), &quot;units&quot;))
+        for c in shown:
+            self.shown_lb.insert(tk.END, c)
+
+        # Centre — arrow buttons
+        cf = ttk.Frame(mid, width=60)
+        cf.grid(row=1, column=1, padx=6)
+        ttk.Button(cf, text=&quot;◀ Show&quot;,  width=7, command=self._show_sel).pack(pady=3)
+        ttk.Button(cf, text=&quot;Hide ▶&quot;,  width=7, command=self._hide_sel).pack(pady=3)
+        ttk.Separator(cf, orient=tk.HORIZONTAL).pack(fill=tk.X, pady=8)
+        ttk.Button(cf, text=&quot;▲ Up&quot;,    width=7, command=self._move_up).pack(pady=3)
+        ttk.Button(cf, text=&quot;▼ Down&quot;,  width=7, command=self._move_down).pack(pady=3)
+
+        # Right panel — Hidden
+        ttk.Label(mid, text=&quot;Hidden&quot;, font=(&quot;Segoe UI&quot;, 9, &quot;bold&quot;)).grid(
+            row=0, column=2, pady=(0, 2))
+        rf   = ttk.Frame(mid)
+        rf.grid(row=1, column=2, sticky=&quot;nsew&quot;)
+        rvsb = ttk.Scrollbar(rf)
+        rvsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.hidden_lb = tk.Listbox(
+            rf, yscrollcommand=rvsb.set, selectmode=tk.EXTENDED,
+            font=(&quot;Consolas&quot;, 9), activestyle=&quot;dotbox&quot;)
+        self.hidden_lb.pack(fill=tk.BOTH, expand=True)
+        rvsb.config(command=self.hidden_lb.yview)
+        self.hidden_lb.bind(&quot;&lt;MouseWheel&gt;&quot;,
+            lambda e: self.hidden_lb.yview_scroll(int(-e.delta / 120), &quot;units&quot;))
+        for c in hidden:
+            self.hidden_lb.insert(tk.END, c)
+
+        # ── Bottom buttons ────────────────────────────────────────────────────
+        bf = ttk.Frame(self)
+        bf.pack(fill=tk.X, padx=12, pady=8)
+        ttk.Button(bf, text=&quot;Show All&quot;,
+                   command=self._show_all).pack(side=tk.LEFT, padx=2)
+        ttk.Button(bf, text=&quot;Hide All&quot;,
+                   command=self._hide_all).pack(side=tk.LEFT, padx=2)
+        ttk.Button(bf, text=&quot;Cancel&quot;,
+                   command=self.destroy).pack(side=tk.RIGHT, padx=2)
+        ttk.Button(bf, text=&quot;Apply&quot;,
+                   command=self._apply).pack(side=tk.RIGHT, padx=2)
+
+    # ── Actions ───────────────────────────────────────────────────────────────
+
+    def _show_sel(self):
+        sel = self.hidden_lb.curselection()
+        items = [self.hidden_lb.get(i) for i in sel]
+        for i in reversed(sel):
+            self.hidden_lb.delete(i)
+        for item in items:
+            self.shown_lb.insert(tk.END, item)
+
+    def _hide_sel(self):
+        sel = self.shown_lb.curselection()
+        items = [self.shown_lb.get(i) for i in sel]
+        for i in reversed(sel):
+            self.shown_lb.delete(i)
+        for item in items:
+            self.hidden_lb.insert(tk.END, item)
+
+    def _move_up(self):
+        sel = self.shown_lb.curselection()
+        if not sel or sel[0] == 0:
+            return
+        for i in sel:
+            val = self.shown_lb.get(i)
+            self.shown_lb.delete(i)
+            self.shown_lb.insert(i - 1, val)
+            self.shown_lb.selection_set(i - 1)
+
+    def _move_down(self):
+        sel = self.shown_lb.curselection()
+        if not sel or sel[-1] == self.shown_lb.size() - 1:
+            return
+        for i in reversed(sel):
+            val = self.shown_lb.get(i)
+            self.shown_lb.delete(i)
+            self.shown_lb.insert(i + 1, val)
+            self.shown_lb.selection_set(i + 1)
+
+    def _show_all(self):
+        items = list(self.hidden_lb.get(0, tk.END))
+        self.hidden_lb.delete(0, tk.END)
+        for item in items:
+            self.shown_lb.insert(tk.END, item)
+
+    def _hide_all(self):
+        items = list(self.shown_lb.get(0, tk.END))
+        self.shown_lb.delete(0, tk.END)
+        for item in items:
+            self.hidden_lb.insert(tk.END, item)
+
+    def _apply(self):
+        new_disp = list(self.shown_lb.get(0, tk.END))
+        if not new_disp:
+            messagebox.showwarning(&quot;Column visibility&quot;,
+                                   &quot;At least one column must remain visible.&quot;,
+                                   parent=self)
+            return
+        self.result = new_disp
+        self.destroy()
+
+    # ── Helpers ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _get_disp(tree: ttk.Treeview) -&gt; list[str]:
+        d = tree[&quot;displaycolumns&quot;]
+        if not d or d in (&quot;#all&quot;, (&quot;#all&quot;,)):
+            return list(tree[&quot;columns&quot;])
+        if isinstance(d, str):
+            return list(tree[&quot;columns&quot;])
+        return list(d)
+</code></pre></div>
+      <div class="tab-panel" id="panel-widgets.py"><pre><code class="language-python">&quot;&quot;&quot;
+widgets.py — small reusable tkinter widgets.
+
+Currently contains:
+  CellEditor — places an Entry widget directly over a Treeview cell for inline editing.
+&quot;&quot;&quot;
+import tkinter as tk
+from tkinter import ttk
+
+
+class CellEditor:
+    &quot;&quot;&quot;
+    Overlays a small Entry widget on top of a Treeview cell so the user can
+    edit the value in-place.
+
+    Usage
+    -----
+    editor = CellEditor(tree, on_save_callback)
+    editor.open(item_iid, &quot;#2&quot;, current_value)   # open on column 2
+    editor.close()                               # close without saving
+    &quot;&quot;&quot;
+
+    def __init__(self, tree: ttk.Treeview, on_save):
+        &quot;&quot;&quot;
+        Parameters
+        ----------
+        tree     : the Treeview to attach to
+        on_save  : callback(item_iid: str, col_index: int, new_value: str)
+                   called when the user commits the edit
+        &quot;&quot;&quot;
+        self.tree    = tree
+        self.on_save = on_save
+        self._w: tk.Entry | None = None
+
+    # ── Public API ────────────────────────────────────────────────────────────
+
+    def open(self, item: str, col_id: str, current: str):
+        &quot;&quot;&quot;Open the editor over (item, col_id) pre-filled with current.&quot;&quot;&quot;
+        self.close()
+        bbox = self.tree.bbox(item, col_id)
+        if not bbox:
+            return
+        x, y, w, h = bbox
+        col_index   = int(col_id.replace(&quot;#&quot;, &quot;&quot;)) - 1
+
+        var = tk.StringVar(value=current)
+        e   = tk.Entry(self.tree, textvariable=var,
+                       relief=&quot;solid&quot;, bd=1,
+                       font=(&quot;Consolas&quot;, 9), bg=&quot;#fffde7&quot;)
+        e.place(x=x, y=y, width=max(w, 120), height=h)
+        e.focus_set()
+        e.select_range(0, tk.END)
+        self._w = e
+
+        commit = lambda _=None: (self.on_save(item, col_index, var.get()), self.close())
+        e.bind(&quot;&lt;Return&gt;&quot;,    commit)
+        e.bind(&quot;&lt;Tab&gt;&quot;,       commit)
+        e.bind(&quot;&lt;Escape&gt;&quot;,    lambda _: self.close())
+        e.bind(&quot;&lt;FocusOut&gt;&quot;,  lambda _: self.close())
+
+    def close(self):
+        &quot;&quot;&quot;Destroy the editor widget without saving.&quot;&quot;&quot;
+        if self._w:
+            self._w.destroy()
+            self._w = None
+</code></pre></div>
+      <div class="tab-panel" id="panel-viewer.py"><pre><code class="language-python">&quot;&quot;&quot;
+viewer.py — PSPCViewer: the main application window.
+
+All tkinter UI lives here.  Database work is delegated to DbHelper.
+&quot;&quot;&quot;
+import tkinter as tk
+from tkinter import ttk, filedialog, messagebox
+import sqlite3
+import os
+import sys
+
+from constants import (
+    EI_VIEW_COLS, PORT_DETAIL_COLS, DEFAULT_SIMPLIFIED, APP_VERSION,
+    PLANT_VAULT_ROOT,
+)
+from settings  import Settings, SettingsDialog
+from dialogs   import ColumnDialog
+from widgets   import CellEditor
+from db_helper import DbHelper, safe_str
+
+
+def resource_path(rel: str) -&gt; str:
+    base = getattr(sys, &quot;_MEIPASS&quot;, os.path.dirname(__file__))
+    return os.path.join(base, rel)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PSPCViewer:
+    APP_TITLE = &quot;PSPC Viewer — Autodesk Plant 3D&quot;
+
+    def __init__(self, root: tk.Tk):
+        self.root = root
+        self.cfg  = Settings()
+        self.db:  DbHelper | None = None
+        self.conn: sqlite3.Connection | None = None
+
+        # State
+        self.cur_file:  str | None   = None
+        self.cur_table: str | None   = None
+        self.cur_cols:  list[str]    = []
+        self.cur_rows:  list[list]   = []
+        self.pending:   dict         = {}  # {tbl: {row_idx: {col: val}}}
+
+        # Port detail
+        self._port_map:    dict[int, list[list]] = {}
+        self._comp_pnpids: list[int | None]      = []
+        self._port_panel_visible = False
+
+        # Port connections tab
+        self.all_port_rows: list[list] = []
+        self.port_tab_cols: list[str]  = []
+
+        # Plant Vault quick-open state
+        self._proj_paths: dict[str, str] = {}
+        self._spec_paths: dict[str, str] = {}
+
+        # Header drag state
+        self._drag_from:    str | None = None
+        self._drag_start_x: int        = 0
+        self._drag_moved:   bool       = False
+
+        # Sort state  {col_name: currently_reversed}
+        self._sort_rev: dict[str, bool] = {}
+
+        # UI mode
+        self._mode        = tk.StringVar(value=self.cfg[&quot;panel_mode&quot;])
+        self._show_hidden = tk.BooleanVar(value=self.cfg[&quot;show_hidden_cols&quot;])
+
+        root.title(self.APP_TITLE)
+        root.geometry(self.cfg[&quot;geometry&quot;])
+        root.minsize(960, 640)
+        root.protocol(&quot;WM_DELETE_WINDOW&quot;, self._on_close)
+        root.bind(&quot;&lt;Configure&gt;&quot;, self._on_resize)
+
+        self._build_ui()
+        self._bind_keys()
+        self._apply_mode_style()
+
+        last = self.cfg[&quot;last_file&quot;]
+        if last and os.path.isfile(last):
+            root.after(200, lambda: self._open(last))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  UI construction
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _build_ui(self):
+        self._build_menu()
+        self._build_toolbar()
+        self._build_body()
+        self._build_status()
+
+    # ── Menu ──────────────────────────────────────────────────────────────────
+
+    def _build_menu(self):
+        mb = tk.Menu(self.root)
+
+        fm = tk.Menu(mb, tearoff=0)
+        fm.add_command(label=&quot;Open…&quot;,            command=self.cmd_open,   accelerator=&quot;Ctrl+O&quot;)
+        fm.add_separator()
+        fm.add_command(label=&quot;Export to Excel…&quot;, command=self.cmd_excel,  accelerator=&quot;Ctrl+E&quot;)
+        fm.add_separator()
+        fm.add_command(label=&quot;Exit&quot;,             command=self._on_close)
+        mb.add_cascade(label=&quot;File&quot;, menu=fm)
+
+        vm = tk.Menu(mb, tearoff=0)
+        vm.add_command(label=&quot;Port Connections tab&quot;, command=self.cmd_ports_tab)
+        vm.add_command(label=&quot;Reload table&quot;,         command=self.cmd_reload, accelerator=&quot;F5&quot;)
+        vm.add_separator()
+        vm.add_checkbutton(label=&quot;Show hidden columns (GUIDs / blobs)&quot;,
+                           variable=self._show_hidden, command=self.cmd_reload)
+        mb.add_cascade(label=&quot;View&quot;, menu=vm)
+
+        hm = tk.Menu(mb, tearoff=0)
+        hm.add_command(label=&quot;About&quot;, command=self._about)
+        mb.add_cascade(label=&quot;Help&quot;, menu=hm)
+        self.root.config(menu=mb)
+
+    # ── Toolbar ───────────────────────────────────────────────────────────────
+
+    def _build_toolbar(self):
+        bar = ttk.Frame(self.root, relief=&quot;raised&quot;)
+        bar.pack(side=tk.TOP, fill=tk.X)
+
+        # Left: standard action buttons
+        for lbl, cmd in [
+            (&quot;📂 Open&quot;,             self.cmd_open),
+            (&quot;📊 Export Excel&quot;,     self.cmd_excel),
+            (&quot;|&quot;, None),
+            (&quot;🔌 Port Connections&quot;, self.cmd_ports_tab),
+            (&quot;🔄 Reload&quot;,           self.cmd_reload),
+            (&quot;|&quot;, None),
+            (&quot;❓ How To&quot;,           self.cmd_howto),
+            (&quot;|&quot;, None),
+        ]:
+            if lbl == &quot;|&quot;:
+                ttk.Separator(bar, orient=tk.VERTICAL).pack(
+                    side=tk.LEFT, fill=tk.Y, padx=5, pady=3)
+            else:
+                ttk.Button(bar, text=lbl, command=cmd).pack(
+                    side=tk.LEFT, padx=2, pady=2)
+
+        # Middle: Plant Vault project selector
+        ttk.Label(bar, text=&quot;Project:&quot;).pack(side=tk.LEFT, padx=(0, 2), pady=2)
+        self._proj_var   = tk.StringVar()
+        self._proj_combo = ttk.Combobox(bar, textvariable=self._proj_var,
+                                        width=30, state=&quot;readonly&quot;)
+        self._proj_combo.pack(side=tk.LEFT, padx=2, pady=2)
+        self._proj_combo.bind(&quot;&lt;&lt;ComboboxSelected&gt;&gt;&quot;, self._on_proj_select)
+        ttk.Button(bar, text=&quot;⟳&quot;, width=2,
+                   command=self._refresh_projects).pack(side=tk.LEFT, padx=(0, 4), pady=2)
+
+        ttk.Separator(bar, orient=tk.VERTICAL).pack(
+            side=tk.LEFT, fill=tk.Y, padx=5, pady=3)
+
+        # Right: spec sheet selector
+        ttk.Label(bar, text=&quot;Spec Sheet:&quot;).pack(side=tk.LEFT, padx=(0, 2), pady=2)
+        self._spec_var   = tk.StringVar()
+        self._spec_combo = ttk.Combobox(bar, textvariable=self._spec_var,
+                                        width=30, state=&quot;readonly&quot;)
+        self._spec_combo.pack(side=tk.LEFT, padx=2, pady=2)
+        self._spec_combo.bind(&quot;&lt;&lt;ComboboxSelected&gt;&gt;&quot;, self._on_spec_select)
+
+        self._refresh_projects()
+
+    # ── Body (left panel + notebook) ──────────────────────────────────────────
+
+    def _build_body(self):
+        pw = ttk.PanedWindow(self.root, orient=tk.HORIZONTAL)
+        pw.pack(fill=tk.BOTH, expand=True, padx=4, pady=4)
+
+        lf = ttk.Frame(pw, width=180)
+        pw.add(lf, weight=1)
+        self._build_left_panel(lf)
+
+        rf = ttk.Frame(pw)
+        pw.add(rf, weight=7)
+        self.nb = ttk.Notebook(rf)
+        self.nb.pack(fill=tk.BOTH, expand=True)
+        self._build_data_tab()
+        self._build_ports_tab()
+
+    # ── Left panel ────────────────────────────────────────────────────────────
+
+    def _build_left_panel(self, parent):
+        hdr = ttk.Frame(parent)
+        hdr.pack(fill=tk.X, padx=4, pady=(4, 0))
+        ttk.Label(hdr, text=&quot;Tables&quot;,
+                  font=(&quot;Segoe UI&quot;, 10, &quot;bold&quot;)).pack(side=tk.LEFT)
+        self._btn_gear = ttk.Button(hdr, text=&quot;⚙&quot;, width=2,
+                                     command=self._open_settings)
+        self._btn_gear.pack(side=tk.RIGHT)
+
+        tog = ttk.Frame(parent)
+        tog.pack(fill=tk.X, padx=4, pady=(2, 0))
+        self._btn_all  = tk.Button(tog, text=&quot;All&quot;,
+                                    relief=&quot;flat&quot;, padx=8, pady=2,
+                                    font=(&quot;Segoe UI&quot;, 9),
+                                    command=lambda: self._set_mode(&quot;all&quot;))
+        self._btn_comp = tk.Button(tog, text=&quot;Components&quot;,
+                                    relief=&quot;flat&quot;, padx=8, pady=2,
+                                    font=(&quot;Segoe UI&quot;, 9),
+                                    command=lambda: self._set_mode(&quot;components&quot;))
+        self._btn_all .pack(side=tk.LEFT,  fill=tk.X, expand=True)
+        self._btn_comp.pack(side=tk.RIGHT, fill=tk.X, expand=True)
+
+        self._tbl_q = tk.StringVar()
+        self._tbl_q.trace_add(&quot;write&quot;, self._refresh_tbl_list)
+        ttk.Entry(parent, textvariable=self._tbl_q).pack(
+            fill=tk.X, padx=4, pady=(3, 1))
+
+        frm = ttk.Frame(parent)
+        frm.pack(fill=tk.BOTH, expand=True, padx=2, pady=(0, 2))
+        vsb = ttk.Scrollbar(frm)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        self.tbl_lb = tk.Listbox(frm, yscrollcommand=vsb.set,
+                                  activestyle=&quot;dotbox&quot;,
+                                  font=(&quot;Consolas&quot;, 9))
+        self.tbl_lb.pack(fill=tk.BOTH, expand=True)
+        vsb.config(command=self.tbl_lb.yview)
+        self.tbl_lb.bind(&quot;&lt;&lt;ListboxSelect&gt;&gt;&quot;, self._on_tbl_sel)
+
+    # ── Data tab ─────────────────────────────────────────────────────────────
+
+    def _build_data_tab(self):
+        self._data_tab = ttk.Frame(self.nb)
+        self.nb.add(self._data_tab, text=&quot;  📋 Data  &quot;)
+
+        # Top bar
+        top = ttk.Frame(self._data_tab)
+        top.pack(fill=tk.X, padx=4, pady=(4, 2))
+        ttk.Label(top, text=&quot;Table:&quot;).pack(side=tk.LEFT)
+        self._lbl_tbl = ttk.Label(top, text=&quot;—&quot;,
+                                   font=(&quot;Segoe UI&quot;, 9, &quot;bold&quot;),
+                                   foreground=&quot;#005a9e&quot;)
+        self._lbl_tbl.pack(side=tk.LEFT, padx=(4, 12))
+        ttk.Label(top, text=&quot;🔍&quot;).pack(side=tk.LEFT)
+        self._srch = tk.StringVar()
+        self._srch.trace_add(&quot;write&quot;, self._apply_search)
+        ttk.Entry(top, textvariable=self._srch, width=26).pack(
+            side=tk.LEFT, padx=2)
+        ttk.Button(top, text=&quot;✕&quot;, width=2,
+                   command=lambda: self._srch.set(&quot;&quot;)).pack(
+            side=tk.LEFT, padx=(0, 8))
+        ttk.Button(top, text=&quot;⊞ Columns&quot;,
+                   command=self._open_col_dialog).pack(side=tk.LEFT, padx=2)
+
+        # Main treeview
+        tf = ttk.Frame(self._data_tab)
+        tf.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 2))
+        vsb = ttk.Scrollbar(tf, orient=tk.VERTICAL)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        hsb = ttk.Scrollbar(tf, orient=tk.HORIZONTAL)
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+
+        sty = ttk.Style()
+        sty.configure(&quot;Treeview&quot;,         rowheight=22, font=(&quot;Consolas&quot;, 9))
+        sty.configure(&quot;Treeview.Heading&quot;, font=(&quot;Segoe UI&quot;, 9, &quot;bold&quot;))
+        sty.map(&quot;Treeview&quot;, background=[(&quot;selected&quot;, &quot;#cce5ff&quot;)])
+
+        self.dtree = ttk.Treeview(tf, yscrollcommand=vsb.set,
+                                   xscrollcommand=hsb.set,
+                                   selectmode=&quot;extended&quot;)
+        self.dtree.pack(fill=tk.BOTH, expand=True)
+        vsb.config(command=self.dtree.yview)
+        hsb.config(command=self.dtree.xview)
+        self.dtree.tag_configure(&quot;mod&quot;,  background=&quot;#fff3cd&quot;)
+        self.dtree.tag_configure(&quot;odd&quot;,  background=&quot;#f8f9fa&quot;)
+        self.dtree.tag_configure(&quot;even&quot;, background=&quot;#ffffff&quot;)
+
+        self.dtree.bind(&quot;&lt;Double-1&gt;&quot;,         self._dbl_click)
+        self.dtree.bind(&quot;&lt;Return&gt;&quot;,           self._enter_key)
+        self.dtree.bind(&quot;&lt;&lt;TreeviewSelect&gt;&gt;&quot;, self._on_row_select)
+        self.dtree.bind(&quot;&lt;Button-3&gt;&quot;,         self._on_header_rclick)
+        self.dtree.bind(&quot;&lt;ButtonPress-1&gt;&quot;,    self._hdr_press)
+        self.dtree.bind(&quot;&lt;B1-Motion&gt;&quot;,        self._hdr_motion)
+        self.dtree.bind(&quot;&lt;ButtonRelease-1&gt;&quot;,  self._hdr_release)
+
+        self.editor = CellEditor(self.dtree, self._on_cell_save)
+
+        self._lbl_rows = ttk.Label(self._data_tab, text=&quot;&quot;, foreground=&quot;#666&quot;)
+        self._lbl_rows.pack(anchor=&quot;e&quot;, padx=8, pady=1)
+
+        # Port detail panel (hidden until Components mode + component table)
+        self._port_sep = ttk.Separator(self._data_tab, orient=tk.HORIZONTAL)
+        self._port_frm = ttk.LabelFrame(self._data_tab,
+                                         text=&quot;Ports of selected component&quot;,
+                                         height=200)
+        self._port_frm.pack_propagate(False)
+        pf   = ttk.Frame(self._port_frm)
+        pf.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
+        pvsb = ttk.Scrollbar(pf, orient=tk.VERTICAL)
+        pvsb.pack(side=tk.RIGHT, fill=tk.Y)
+        phsb = ttk.Scrollbar(pf, orient=tk.HORIZONTAL)
+        phsb.pack(side=tk.BOTTOM, fill=tk.X)
+        self.ptree_detail = ttk.Treeview(pf, yscrollcommand=pvsb.set,
+                                          xscrollcommand=phsb.set)
+        self.ptree_detail.pack(fill=tk.BOTH, expand=True)
+        pvsb.config(command=self.ptree_detail.yview)
+        phsb.config(command=self.ptree_detail.xview)
+        self.ptree_detail.tag_configure(&quot;s1&quot;,   background=&quot;#d4edda&quot;)
+        self.ptree_detail.tag_configure(&quot;odd&quot;,  background=&quot;#e8f4f8&quot;)
+        self.ptree_detail.tag_configure(&quot;even&quot;, background=&quot;#ffffff&quot;)
+
+    def _show_port_panel(self):
+        if not self._port_panel_visible:
+            self._port_sep.pack(fill=tk.X, padx=4, pady=(2, 0))
+            self._port_frm.pack(fill=tk.BOTH, padx=4, pady=(2, 4))
+            self._port_panel_visible = True
+
+    def _hide_port_panel(self):
+        if self._port_panel_visible:
+            self._port_sep.pack_forget()
+            self._port_frm.pack_forget()
+            self._port_panel_visible = False
+
+    # ── Port connections tab ──────────────────────────────────────────────────
+
+    def _build_ports_tab(self):
+        tab = ttk.Frame(self.nb)
+        self.nb.add(tab, text=&quot;  🔌 Port Connections  &quot;)
+
+        top = ttk.Frame(tab)
+        top.pack(fill=tk.X, padx=4, pady=(4, 2))
+        ttk.Label(top, text=&quot;🔍&quot;).pack(side=tk.LEFT)
+        self._port_q = tk.StringVar()
+        self._port_q.trace_add(&quot;write&quot;, self._filter_port_tab)
+        ttk.Entry(top, textvariable=self._port_q, width=32).pack(
+            side=tk.LEFT, padx=2)
+        ttk.Button(top, text=&quot;✕&quot;, width=2,
+                   command=lambda: self._port_q.set(&quot;&quot;)).pack(side=tk.LEFT)
+        ttk.Separator(top, orient=tk.VERTICAL).pack(
+            side=tk.LEFT, fill=tk.Y, padx=8, pady=2)
+        ttk.Button(top, text=&quot;🔄 Reload&quot;,
+                   command=self._load_all_ports).pack(side=tk.LEFT)
+
+        pf  = ttk.Frame(tab)
+        pf.pack(fill=tk.BOTH, expand=True, padx=4, pady=(0, 2))
+        vsb = ttk.Scrollbar(pf, orient=tk.VERTICAL)
+        vsb.pack(side=tk.RIGHT, fill=tk.Y)
+        hsb = ttk.Scrollbar(pf, orient=tk.HORIZONTAL)
+        hsb.pack(side=tk.BOTTOM, fill=tk.X)
+        self.ptree = ttk.Treeview(pf, yscrollcommand=vsb.set,
+                                   xscrollcommand=hsb.set)
+        self.ptree.pack(fill=tk.BOTH, expand=True)
+        vsb.config(command=self.ptree.yview)
+        hsb.config(command=self.ptree.xview)
+        self.ptree.tag_configure(&quot;odd&quot;,  background=&quot;#f8f9fa&quot;)
+        self.ptree.tag_configure(&quot;even&quot;, background=&quot;#ffffff&quot;)
+        self._lbl_ports = ttk.Label(
+            tab, text=&quot;Open a .pspc file to see port connections.&quot;,
+            foreground=&quot;#666&quot;)
+        self._lbl_ports.pack(anchor=&quot;e&quot;, padx=8, pady=1)
+
+    def _build_status(self):
+        self._status = tk.StringVar(value=&quot;Ready — open a .pspc file to begin.&quot;)
+        ttk.Label(self.root, textvariable=self._status,
+                  relief=tk.SUNKEN, anchor=tk.W, padding=(4, 1)).pack(
+            side=tk.BOTTOM, fill=tk.X)
+
+    def _bind_keys(self):
+        self.root.bind(&quot;&lt;Control-o&gt;&quot;, lambda _: self.cmd_open())
+        self.root.bind(&quot;&lt;Control-e&gt;&quot;, lambda _: self.cmd_excel())
+        self.root.bind(&quot;&lt;F5&gt;&quot;,        lambda _: self.cmd_reload())
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Commands
+    # ══════════════════════════════════════════════════════════════════════════
+
+    # ── Plant Vault quick-open ─────────────────────────────────────────────────
+
+    def _refresh_projects(self):
+        &quot;&quot;&quot;Scan PLANT_VAULT_ROOT and populate the Project combobox.&quot;&quot;&quot;
+        self._proj_paths = {}
+        dirs = []
+        if os.path.isdir(PLANT_VAULT_ROOT):
+            try:
+                for entry in sorted(os.scandir(PLANT_VAULT_ROOT),
+                                    key=lambda e: e.name.lower()):
+                    if entry.is_dir():
+                        dirs.append(entry.name)
+                        self._proj_paths[entry.name] = entry.path
+            except PermissionError:
+                pass
+        self._proj_combo[&quot;values&quot;] = dirs
+        self._spec_combo[&quot;values&quot;] = []
+        self._spec_var.set(&quot;&quot;)
+        if not dirs:
+            self._proj_var.set(&quot;&quot;)
+
+    def _on_proj_select(self, _=None):
+        &quot;&quot;&quot;Project chosen — scan its Spec Sheets folder for .pspc files.&quot;&quot;&quot;
+        proj = self._proj_var.get()
+        if not proj or proj not in self._proj_paths:
+            return
+        self._spec_paths = {}
+        spec_dir = os.path.join(self._proj_paths[proj], &quot;Spec Sheets&quot;)
+        files = []
+        if os.path.isdir(spec_dir):
+            try:
+                for entry in sorted(os.scandir(spec_dir),
+                                    key=lambda e: e.name.lower()):
+                    if entry.is_file() and entry.name.lower().endswith(&quot;.pspc&quot;):
+                        files.append(entry.name)
+                        self._spec_paths[entry.name] = entry.path
+            except PermissionError:
+                pass
+        self._spec_combo[&quot;values&quot;] = files
+        self._spec_var.set(&quot;&quot;)
+        if not files:
+            self._status.set(
+                f&quot;No .pspc files in &#x27;{proj}\\Spec Sheets&#x27;  —  check folder path&quot;)
+
+    def _on_spec_select(self, _=None):
+        &quot;&quot;&quot;Spec sheet chosen — open it.&quot;&quot;&quot;
+        name = self._spec_var.get()
+        if name and name in self._spec_paths:
+            self._open(self._spec_paths[name])
+
+    def cmd_open(self):
+        path = filedialog.askopenfilename(
+            title=&quot;Open PSPC / SQLite file&quot;,
+            filetypes=[
+                (&quot;Plant 3D Spec&quot;, &quot;*.pspc&quot;),
+                (&quot;SQLite DB&quot;,     &quot;*.db *.sqlite *.sqlite3&quot;),
+                (&quot;All files&quot;,     &quot;*.*&quot;),
+            ])
+        if path:
+            self._open(path)
+
+    def cmd_save(self):
+        if not self.db:
+            messagebox.showwarning(&quot;No file&quot;, &quot;No file is open.&quot;)
+            return
+        if not self.pending:
+            messagebox.showinfo(&quot;Nothing to save&quot;, &quot;No unsaved changes.&quot;)
+            return
+        total = sum(len(r) for rows in self.pending.values() for r in rows.values())
+        if not messagebox.askyesno(&quot;Save changes&quot;,
+                f&quot;Write {total} cell change(s) to:\n{self.cur_file}&quot;):
+            return
+        try:
+            self.db.save_changes(self.pending)
+            self.pending = {}
+            self._status.set(&quot;✓ Changes saved.&quot;)
+            messagebox.showinfo(&quot;Saved&quot;, &quot;All changes written to the database.&quot;)
+            self.cmd_reload()
+        except Exception as e:
+            messagebox.showerror(&quot;Save failed&quot;, str(e))
+
+    def cmd_excel(self):
+        if not self.db:
+            messagebox.showwarning(&quot;No file&quot;, &quot;No file is open.&quot;)
+            return
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_command(label=&quot;📋  Export Screen  (vidni stolpci / filtrirane vrstice)&quot;,
+                         command=self._excel_screen)
+        menu.add_command(label=&quot;📦  Export All  (vse tabele v ločene sheete)&quot;,
+                         command=self._excel_all)
+        try:
+            menu.post(self.root.winfo_pointerx(), self.root.winfo_pointery())
+        finally:
+            menu.grab_release()
+
+    def _excel_screen(self):
+        if not self.cur_table:
+            messagebox.showwarning(&quot;No table&quot;, &quot;Najprej izberi tabelo.&quot;)
+            return
+        try:
+            import pandas as pd
+            import openpyxl  # noqa
+        except ImportError as e:
+            messagebox.showerror(&quot;Missing library&quot;,
+                f&quot;Install:  pip install pandas openpyxl\n\n({e})&quot;)
+            return
+        dest = filedialog.asksaveasfilename(
+            title=&quot;Export Screen to Excel&quot;, defaultextension=&quot;.xlsx&quot;,
+            filetypes=[(&quot;Excel workbook&quot;, &quot;*.xlsx&quot;), (&quot;All files&quot;, &quot;*.*&quot;)])
+        if not dest:
+            return
+        try:
+            disp_cols = self._get_displaycols()
+            all_cols  = list(self.dtree[&quot;columns&quot;])
+            indices   = [all_cols.index(c) for c in disp_cols if c in all_cols]
+            rows = [
+                [self.dtree.item(iid, &quot;values&quot;)[i] for i in indices]
+                for iid in self.dtree.get_children()
+            ]
+            df = pd.DataFrame(rows, columns=disp_cols)
+            with pd.ExcelWriter(dest, engine=&quot;openpyxl&quot;) as wr:
+                df.to_excel(wr, sheet_name=self.cur_table[:31], index=False)
+            self._status.set(f&quot;✓ Exported (screen) → {dest}&quot;)
+            messagebox.showinfo(&quot;Done&quot;, f&quot;Saved:\n{dest}&quot;)
+        except Exception as e:
+            messagebox.showerror(&quot;Export failed&quot;, str(e))
+
+    def _excel_all(self):
+        try:
+            import pandas   # noqa
+            import openpyxl  # noqa
+        except ImportError as e:
+            messagebox.showerror(&quot;Missing library&quot;,
+                f&quot;Install:  pip install pandas openpyxl\n\n({e})&quot;)
+            return
+        dest = filedialog.asksaveasfilename(
+            title=&quot;Export All to Excel&quot;, defaultextension=&quot;.xlsx&quot;,
+            filetypes=[(&quot;Excel workbook&quot;, &quot;*.xlsx&quot;), (&quot;All files&quot;, &quot;*.*&quot;)])
+        if not dest:
+            return
+        try:
+            self.db.export_excel(dest)
+            self._status.set(f&quot;✓ Exported (all) → {dest}&quot;)
+            messagebox.showinfo(&quot;Done&quot;, f&quot;Saved:\n{dest}&quot;)
+        except Exception as e:
+            messagebox.showerror(&quot;Export failed&quot;, str(e))
+
+    def cmd_ports_tab(self):
+        self.nb.select(1)
+        if self.db:
+            self._load_all_ports()
+
+    def cmd_reload(self):
+        if self.cur_table:
+            self._load_table(self.cur_table)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  File open
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _open(self, path: str):
+        try:
+            if self.conn:
+                self.conn.close()
+            self.conn      = sqlite3.connect(f&quot;file:{path}?mode=ro&quot;, uri=True)
+            self.db        = DbHelper(self.conn)
+            self.cur_file  = path
+            self.pending   = {}
+            self.root.title(f&quot;{self.APP_TITLE}  —  {os.path.basename(path)}  [read-only]&quot;)
+            self._status.set(f&quot;Opened: {path}&quot;)
+            self.cfg[&quot;last_file&quot;] = path
+            self.cfg.save()
+            self._populate_tables()
+            self._load_all_ports()
+        except Exception as e:
+            messagebox.showerror(&quot;Open failed&quot;, str(e))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Left-panel table list
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _populate_tables(self):
+        self._refresh_tbl_list()
+        start = (&quot;EngineeringItems&quot;
+                 if &quot;EngineeringItems&quot; in self.db.all_tables
+                 else (self.db.all_tables[0] if self.db.all_tables else None))
+        if start:
+            self._select_lb(start)
+            self._load_table(start)
+
+    def _refresh_tbl_list(self, *_):
+        if not self.db:
+            return
+        q     = self._tbl_q.get().lower()
+        mode  = self._mode.get()
+        simp  = set(self.cfg[&quot;simplified_tables&quot;])
+        names = self.db.all_tables
+        if mode == &quot;components&quot;:
+            names = [t for t in names if t in simp]
+        if q:
+            names = [t for t in names if q in t.lower()]
+        self.tbl_lb.delete(0, tk.END)
+        for t in names:
+            self.tbl_lb.insert(tk.END, t)
+
+    def _select_lb(self, name: str):
+        items = list(self.tbl_lb.get(0, tk.END))
+        if name in items:
+            idx = items.index(name)
+            self.tbl_lb.selection_clear(0, tk.END)
+            self.tbl_lb.selection_set(idx)
+            self.tbl_lb.see(idx)
+
+    def _on_tbl_sel(self, _):
+        sel = self.tbl_lb.curselection()
+        if sel:
+            self._load_table(self.tbl_lb.get(sel[0]))
+
+    def _set_mode(self, mode: str):
+        self._mode.set(mode)
+        self.cfg[&quot;panel_mode&quot;] = mode
+        self._apply_mode_style()
+        self._refresh_tbl_list()
+        if self.cur_table:
+            self._load_table(self.cur_table)
+
+    def _apply_mode_style(self):
+        mode = self._mode.get()
+        if mode == &quot;all&quot;:
+            self._btn_all .config(bg=&quot;#005a9e&quot;, fg=&quot;white&quot;)
+            self._btn_comp.config(bg=&quot;#e0e0e0&quot;, fg=&quot;#333&quot;)
+            self._btn_gear.pack_forget()
+            self._hide_port_panel()
+        else:
+            self._btn_all .config(bg=&quot;#e0e0e0&quot;, fg=&quot;#333&quot;)
+            self._btn_comp.config(bg=&quot;#005a9e&quot;, fg=&quot;white&quot;)
+            self._btn_gear.pack(side=tk.RIGHT)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Table loading  (delegates data work to DbHelper)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _load_table(self, name: str):
+        if not self.db:
+            return
+        self.cur_table = name
+        self._lbl_tbl.config(text=name)
+        self._srch.set(&quot;&quot;)
+        self.editor.close()
+        self._sort_rev.clear()
+
+        mode      = self._mode.get()
+        has_pnpid = self.db.col_exists(name, &quot;PnPID&quot;)
+
+        if mode == &quot;components&quot; and has_pnpid:
+            self._show_port_panel()
+            if name == &quot;EngineeringItems&quot;:
+                self._load_ei()
+            else:
+                self._load_comp(name)
+        else:
+            self._hide_port_panel()
+            self._load_raw(name)
+
+    def _load_raw(self, name: str):
+        try:
+            cols, rows = self.db.table_raw(name, self._show_hidden.get())
+            self.cur_cols     = cols
+            self.cur_rows     = rows
+            self._comp_pnpids = []
+            self._render(cols, rows)
+            self._lbl_rows.config(text=f&quot;{len(rows)} rows · {len(cols)} columns&quot;)
+            self._status.set(f&quot;Table: {name}  —  {len(rows)} rows&quot;)
+        except Exception as e:
+            messagebox.showerror(&quot;Load error&quot;, str(e))
+
+    def _load_ei(self):
+        try:
+            labels, rows, pnpids = self.db.ei_view(self._show_hidden.get())
+            self.cur_cols     = labels
+            self.cur_rows     = rows
+            self._comp_pnpids = pnpids
+            self._port_map    = self.db.port_map()
+            self._render(labels, rows)
+            self._lbl_rows.config(
+                text=f&quot;{len(rows)} components · {len(labels)} columns  &quot;
+                     f&quot;— click a row to see its ports below&quot;)
+            self._status.set(f&quot;Table: EngineeringItems  —  {len(rows)} components&quot;)
+        except Exception as e:
+            messagebox.showerror(&quot;Load error (EI view)&quot;, str(e))
+
+    def _load_comp(self, name: str):
+        try:
+            labels, rows, pnpids = self.db.comp_join(name)
+            self.cur_cols     = labels
+            self.cur_rows     = rows
+            self._comp_pnpids = pnpids
+            self._port_map    = self.db.port_map()
+            self._render(labels, rows)
+            self._lbl_rows.config(
+                text=f&quot;{len(rows)} rows · {len(labels)} columns  &quot;
+                     f&quot;— click a row to see its ports below&quot;)
+            self._status.set(f&quot;Table: {name}  —  {len(rows)} rows&quot;)
+        except Exception as e:
+            messagebox.showerror(&quot;Load error (join view)&quot;, str(e))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Render  (tkinter only, no SQL)
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _render(self, cols: list[str], rows: list[list]):
+        tree = self.dtree
+        tree.delete(*tree.get_children())
+        tree[&quot;displaycolumns&quot;] = &quot;#all&quot;
+        tree[&quot;columns&quot;] = cols
+        tree[&quot;show&quot;]    = &quot;headings&quot;
+        for col in cols:
+            w = min(max(len(col) * 9, 70), 300)
+            tree.heading(col, text=col)          # sort handled by _hdr_release
+            tree.column(col, width=w, minwidth=40, stretch=False)
+        # Auto-hide columns where every row is blank
+        if rows:
+            empty = {i for i, _ in enumerate(cols)
+                     if all(not safe_str(r[i]).strip() for r in rows)}
+            vis = [c for i, c in enumerate(cols) if i not in empty]
+        else:
+            vis = list(cols)
+        tree[&quot;displaycolumns&quot;] = vis or cols
+
+        for i, row in enumerate(rows):
+            tag = &quot;odd&quot; if i % 2 else &quot;even&quot;
+            tree.insert(&quot;&quot;, tk.END, iid=str(i),
+                        values=[safe_str(v) for v in row], tags=(tag,))
+        self._apply_col_prefs()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Port detail panel
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _on_row_select(self, _):
+        if not self._port_panel_visible:
+            return
+        sel = self.dtree.selection()
+        if not sel:
+            return
+        idx = int(sel[0])
+        if idx &lt; len(self._comp_pnpids) and self._comp_pnpids[idx] is not None:
+            self._refresh_port_detail(self._comp_pnpids[idx])
+
+    def _refresh_port_detail(self, pnpid: int):
+        tree = self.ptree_detail
+        tree.delete(*tree.get_children())
+        labels = [lbl for _, lbl, _ in PORT_DETAIL_COLS]
+        widths = [w   for _, _,   w in PORT_DETAIL_COLS]
+        tree[&quot;columns&quot;] = labels
+        tree[&quot;show&quot;]    = &quot;headings&quot;
+        for lbl, w in zip(labels, widths):
+            tree.heading(lbl, text=lbl)
+            tree.column(lbl, width=w, minwidth=40, stretch=False)
+
+        s1 = self.db.s1_port(pnpid)
+        if s1:
+            s1[0] = s1[0] or &quot;S1&quot;
+            tree.insert(&quot;&quot;, tk.END, values=[safe_str(v) for v in s1], tags=(&quot;s1&quot;,))
+
+        extra = self._port_map.get(pnpid, [])
+        for i, p in enumerate(extra):
+            tree.insert(&quot;&quot;, tk.END,
+                        values=[safe_str(v) for v in p],
+                        tags=(&quot;odd&quot; if i % 2 else &quot;even&quot;,))
+
+        total = (1 if s1 else 0) + len(extra)
+        self._port_frm.config(
+            text=f&quot;Ports of selected component  &quot;
+                 f&quot;({total} port{&#x27;s&#x27; if total != 1 else &#x27;&#x27;})  &quot;
+                 f&quot;— S1 (green) from EngineeringItems  ·  S2+ from Port table&quot;)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Port connections tab
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _load_all_ports(self):
+        if not self.db:
+            return
+        try:
+            cols, rows = self.db.all_ports()
+            if not cols:
+                self._lbl_ports.config(text=&quot;No port tables detected.&quot;)
+                return
+            self.all_port_rows = rows
+            self.port_tab_cols = cols
+            self._render_port_tab(cols, rows)
+            self._lbl_ports.config(
+                text=f&quot;{len(rows)} port entries  &quot;
+                     f&quot;(S1 from EngineeringItems · S2+ from Port table)&quot;)
+        except Exception as e:
+            self._lbl_ports.config(text=f&quot;Error: {e}&quot;)
+
+    def _render_port_tab(self, cols: list[str], rows: list[list]):
+        tree = self.ptree
+        tree.delete(*tree.get_children())
+        tree[&quot;columns&quot;] = cols
+        tree[&quot;show&quot;]    = &quot;headings&quot;
+        for col in cols:
+            w = min(max(len(col) * 9, 60), 280)
+            tree.heading(col, text=col,
+                         command=lambda c=col: self._sort_col(tree, c, False))
+            tree.column(col, width=w, minwidth=40, stretch=False)
+        for i, row in enumerate(rows):
+            tree.insert(&quot;&quot;, tk.END, iid=str(i),
+                        values=[safe_str(v) for v in row],
+                        tags=(&quot;odd&quot; if i % 2 else &quot;even&quot;,))
+
+    def _filter_port_tab(self, *_):
+        q    = self._port_q.get().lower()
+        tree = self.ptree
+        tree.delete(*tree.get_children())
+        for i, row in enumerate(self.all_port_rows):
+            if not q or any(q in safe_str(v).lower() for v in row):
+                tree.insert(&quot;&quot;, tk.END, iid=str(i),
+                            values=[safe_str(v) for v in row],
+                            tags=(&quot;odd&quot; if i % 2 else &quot;even&quot;,))
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Cell editing
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _dbl_click(self, event):
+        return  # read-only mode
+        if self.dtree.identify_region(event.x, event.y) == &quot;heading&quot;:
+            return
+        item = self.dtree.identify_row(event.y)
+        col  = self.dtree.identify_column(event.x)
+        if not item or not col:
+            return
+        disp     = self._get_displaycols()
+        disp_idx = int(col.replace(&quot;#&quot;, &quot;&quot;)) - 1
+        if disp_idx &lt; 0 or disp_idx &gt;= len(disp):
+            return
+        col_name = disp[disp_idx]
+        all_idx  = list(self.dtree[&quot;columns&quot;]).index(col_name)
+        val      = self.dtree.item(item, &quot;values&quot;)[all_idx]
+        self.editor.open(item, f&quot;#{all_idx + 1}&quot;, val)
+
+    def _enter_key(self, _):
+        return  # read-only mode
+
+    def _on_cell_save(self, item: str, col_index: int, new_value: str):
+        vals = list(self.dtree.item(item, &quot;values&quot;))
+        if col_index &gt;= len(vals) or vals[col_index] == new_value:
+            return
+        vals[col_index] = new_value
+        self.dtree.item(item, values=vals, tags=(&quot;mod&quot;,))
+        row_idx  = int(item)
+        col_name = (self.cur_cols[col_index]
+                    if col_index &lt; len(self.cur_cols) else f&quot;col_{col_index}&quot;)
+        self.pending.setdefault(self.cur_table, {})\
+                    .setdefault(row_idx, {})[col_name] = new_value
+        self._status.set(
+            f&quot;⚠ Unsaved — {self.cur_table}.{col_name}  row {row_idx + 1}&quot;)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Search &amp; sort
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _apply_search(self, *_):
+        q    = self._srch.get().lower()
+        tree = self.dtree
+        tree.delete(*tree.get_children())
+        for i, row in enumerate(self.cur_rows):
+            if not q or any(q in safe_str(v).lower() for v in row):
+                tree.insert(&quot;&quot;, tk.END, iid=str(i),
+                            values=[safe_str(v) for v in row],
+                            tags=(&quot;odd&quot; if i % 2 else &quot;even&quot;,))
+
+    def _sort_col(self, tree: ttk.Treeview, col: str, reverse: bool):
+        data = [(tree.set(c, col), c) for c in tree.get_children(&quot;&quot;)]
+        try:
+            data.sort(key=lambda x: (x[0] == &quot;&quot;, float(x[0])), reverse=reverse)
+        except (ValueError, TypeError):
+            data.sort(key=lambda x: (x[0] == &quot;&quot;, x[0].lower()), reverse=reverse)
+        for idx, (_, child) in enumerate(data):
+            tree.move(child, &quot;&quot;, idx)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Header drag-to-reorder
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _hdr_press(self, event):
+        if self.dtree.identify_region(event.x, event.y) == &quot;heading&quot;:
+            self._drag_from    = self._col_id_at_x(event.x)
+            self._drag_start_x = event.x
+            self._drag_moved   = False
+        else:
+            self._drag_from = None
+
+    def _hdr_motion(self, event):
+        if self._drag_from and abs(event.x - self._drag_start_x) &gt; 8:
+            self._drag_moved = True
+            self.dtree.config(cursor=&quot;sb_h_double_arrow&quot;)
+
+    def _hdr_release(self, event):
+        self.dtree.config(cursor=&quot;&quot;)
+        if not self._drag_from:
+            return
+        if self._drag_moved:
+            if self.dtree.identify_region(event.x, event.y) == &quot;heading&quot;:
+                to = self._col_id_at_x(event.x)
+                if to and to != self._drag_from:
+                    self._move_col(self._drag_from, to)
+        else:
+            if self.dtree.identify_region(event.x, event.y) == &quot;heading&quot;:
+                col = self._drag_from
+                if col:
+                    rev = self._sort_rev.get(col, False)
+                    self._sort_col(self.dtree, col, rev)
+                    self._sort_rev[col] = not rev
+                    arrow = &quot; ▲&quot; if not rev else &quot; ▼&quot;
+                    for c in self._get_displaycols():
+                        self.dtree.heading(c, text=c.rstrip(&quot; ▲▼&quot;))
+                    self.dtree.heading(col, text=col.rstrip(&quot; ▲▼&quot;) + arrow)
+        self._drag_from  = None
+        self._drag_moved = False
+
+    def _col_id_at_x(self, x: int) -&gt; str | None:
+        col_n = self.dtree.identify_column(x)
+        if not col_n or col_n == &quot;#0&quot;:
+            return None
+        idx  = int(col_n.replace(&quot;#&quot;, &quot;&quot;)) - 1
+        cols = self._get_displaycols()
+        return cols[idx] if 0 &lt;= idx &lt; len(cols) else None
+
+    def _move_col(self, from_id: str, to_id: str):
+        disp = self._get_displaycols()
+        if from_id not in disp or to_id not in disp:
+            return
+        fi, ti = disp.index(from_id), disp.index(to_id)
+        disp.insert(ti, disp.pop(fi))
+        self.dtree[&quot;displaycolumns&quot;] = disp
+        self._save_col_prefs()
+
+    def _get_displaycols(self) -&gt; list[str]:
+        d = self.dtree[&quot;displaycolumns&quot;]
+        if not d or d in (&quot;#all&quot;, (&quot;#all&quot;,)):
+            return list(self.dtree[&quot;columns&quot;])
+        if isinstance(d, str):
+            return list(self.dtree[&quot;columns&quot;])
+        return list(d)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Column visibility
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _save_col_prefs(self):
+        if not self.cur_table:
+            return
+        all_cols = list(self.dtree[&quot;columns&quot;])
+        disp     = self._get_displaycols()
+        hidden   = [c for c in all_cols if c not in set(disp)]
+        prefs    = self.cfg[&quot;column_prefs&quot;]
+        prefs[self.cur_table] = {&quot;hidden&quot;: hidden, &quot;order&quot;: disp}
+        self.cfg[&quot;column_prefs&quot;] = prefs
+        self.cfg.save()
+
+    def _apply_col_prefs(self):
+        if not self.cur_table:
+            return
+        saved = self.cfg[&quot;column_prefs&quot;].get(self.cur_table)
+        if not saved:
+            return
+        all_cols = list(self.dtree[&quot;columns&quot;])
+        col_set  = set(all_cols)
+        hidden   = set(saved.get(&quot;hidden&quot;, []))
+        order    = [c for c in saved.get(&quot;order&quot;, []) if c in col_set]
+        order   += [c for c in all_cols if c not in set(order)]
+        disp     = [c for c in order if c not in hidden]
+        if disp:
+            self.dtree[&quot;displaycolumns&quot;] = disp
+
+    def _on_header_rclick(self, event):
+        if self.dtree.identify_region(event.x, event.y) != &quot;heading&quot;:
+            return
+        col = self._col_id_at_x(event.x)
+        if not col:
+            return
+        menu = tk.Menu(self.root, tearoff=0)
+        menu.add_command(label=f&#x27;Hide  &quot;{col}&quot;&#x27;,
+                         command=lambda: self._hide_col(col))
+        menu.add_separator()
+        menu.add_command(label=&quot;⊞  Show / Hide Columns…&quot;,
+                         command=self._open_col_dialog)
+        try:
+            menu.post(event.x_root, event.y_root)
+        finally:
+            menu.grab_release()
+
+    def _hide_col(self, col: str):
+        disp = [c for c in self._get_displaycols() if c != col]
+        if not disp:
+            messagebox.showwarning(&quot;Column visibility&quot;,
+                                   &quot;Can&#x27;t hide the last visible column.&quot;)
+            return
+        self.dtree[&quot;displaycolumns&quot;] = disp
+        self._status.set(f&quot;Column hidden: {col}  — use &#x27;⊞ Columns&#x27; to restore&quot;)
+        self._save_col_prefs()
+
+    def _open_col_dialog(self):
+        if not self.dtree[&quot;columns&quot;]:
+            messagebox.showinfo(&quot;No table&quot;, &quot;Load a table first.&quot;)
+            return
+        dlg = ColumnDialog(self.root, self.dtree)
+        self.root.wait_window(dlg)
+        if dlg.result is not None:
+            self.dtree[&quot;displaycolumns&quot;] = dlg.result
+            hidden_n = len(self.dtree[&quot;columns&quot;]) - len(dlg.result)
+            self._status.set(
+                f&quot;Columns updated — {len(dlg.result)} visible&quot;
+                + (f&quot;, {hidden_n} hidden&quot; if hidden_n else &quot;&quot;))
+            self._save_col_prefs()
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Settings dialog
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _open_settings(self):
+        tables = self.db.all_tables if self.db else []
+        dlg    = SettingsDialog(self.root, self.cfg, tables)
+        self.root.wait_window(dlg)
+        if dlg.result is not None:
+            self.cfg[&quot;simplified_tables&quot;] = dlg.result
+            self.cfg.save()
+            self._refresh_tbl_list()
+            self._status.set(
+                f&quot;✓ Settings saved  ({len(dlg.result)} tables in Components view)&quot;)
+
+    # ══════════════════════════════════════════════════════════════════════════
+    #  Misc / lifecycle
+    # ══════════════════════════════════════════════════════════════════════════
+
+    def _about(self):
+        messagebox.showinfo(&quot;About PSPC Viewer&quot;,
+            f&quot;PSPC Viewer v{APP_VERSION}\n\n&quot;
+            &quot;Pregledovalnik Autodesk Plant 3D .pspc datotek.\n&quot;
+            &quot;.pspc je SQLite baza z informacijami o inštrumentaciji (cevovodi,\n&quot;
+            &quot;komponente, priključki). Datoteka se odpre samo za branje (read-only)\n&quot;
+            &quot;— originalni podatki se nikoli ne spremenijo.\n\n&quot;
+            &quot;Kaj lahko naredite:\n&quot;
+            &quot;  • Pregledate vse tabele in vsebino baze\n&quot;
+            &quot;  • Iščete in sortirate po stolpcih\n&quot;
+            &quot;  • V Components načinu vidite komponente z vsemi priključki (S1–S4)\n&quot;
+            &quot;  • Izvozite katerokoli tabelo v Excel (.xlsx)\n\n&quot;
+            &quot;Stolpci:\n&quot;
+            &quot;  Right-click header  → skrij ta stolpec\n&quot;
+            &quot;  ⊞ Columns button   → pokaži / skrij stolpce\n&quot;
+            &quot;  Drag header L/R    → preuredi stolpce\n&quot;
+            &quot;  Click header       → razvrsti (▲ ▼)\n\n&quot;
+            &quot;Bližnjice:  Ctrl+O  Odpri  ·  Ctrl+E  Izvozi v Excel  ·  F5  Osveži\n\n&quot;
+            &quot;Config:  ~/.pspcviewer/config.json&quot;)
+
+    def cmd_howto(self):
+        win = tk.Toplevel(self.root)
+        win.title(&quot;How To Use — PSPC Viewer&quot;)
+        win.resizable(False, False)
+        win.grab_set()
+
+        text = (
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  WHAT IS THIS PROGRAM?\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;PSPC Viewer lets you inspect .pspc files from\n&quot;
+            &quot;Autodesk Plant 3D projects. A .pspc file is a\n&quot;
+            &quot;SQLite database containing piping and\n&quot;
+            &quot;instrumentation data: components, ports,\n&quot;
+            &quot;engineering items, and their connections.\n&quot;
+            &quot;\n&quot;
+            &quot;The file is always opened READ-ONLY —\n&quot;
+            &quot;your original data is never modified.\n&quot;
+            &quot;\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  GETTING STARTED\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;1. Click  📂 Open  (or Ctrl+O) and select\n&quot;
+            &quot;   a .pspc file from your Plant 3D project.\n&quot;
+            &quot;2. The left panel lists all tables in the file.\n&quot;
+            &quot;3. Click a table name to view its contents.\n&quot;
+            &quot;\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  BROWSING DATA\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;• Click a column header   → sort ascending / descending\n&quot;
+            &quot;• Right-click a header    → hide that column\n&quot;
+            &quot;• ⊞ Columns button        → show or hide any column\n&quot;
+            &quot;• Drag a column header    → reorder columns\n&quot;
+            &quot;• Search box (top-left)   → filter table list by name\n&quot;
+            &quot;\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  COMPONENTS VIEW\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;Switch to  Components  mode in the top-left\n&quot;
+            &quot;dropdown to see only the main instrument/\n&quot;
+            &quot;equipment tables.\n&quot;
+            &quot;\n&quot;
+            &quot;Click any component row to see all its ports\n&quot;
+            &quot;listed below (S1–S4 connections):\n&quot;
+            &quot;  S1 (green)  = defined directly in EngineeringItems\n&quot;
+            &quot;  S2 / S3 / S4 = looked up via the PartPort table\n&quot;
+            &quot;\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  PORT CONNECTIONS TAB\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;Click  🔌 Port Connections  to open a full\n&quot;
+            &quot;view of all port-to-port connections in the file.\n&quot;
+            &quot;Useful for tracing how components are linked.\n&quot;
+            &quot;\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  EXPORTING TO EXCEL\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;Click  📊 Export Excel  (or Ctrl+E) to save\n&quot;
+            &quot;every table as a separate sheet in an .xlsx file.\n&quot;
+            &quot;\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  KEYBOARD SHORTCUTS\n&quot;
+            &quot;═══════════════════════════════════════\n&quot;
+            &quot;  Ctrl+O   Open file\n&quot;
+            &quot;  Ctrl+E   Export to Excel\n&quot;
+            &quot;  F5       Reload current table\n&quot;
+        )
+
+        frm = ttk.Frame(win, padding=10)
+        frm.pack(fill=tk.BOTH, expand=True)
+
+        sb = ttk.Scrollbar(frm, orient=tk.VERTICAL)
+        sb.pack(side=tk.RIGHT, fill=tk.Y)
+
+        box = tk.Text(frm, width=56, height=28, wrap=tk.NONE,
+                      font=(&quot;Courier&quot;, 10), relief=tk.FLAT,
+                      yscrollcommand=sb.set, state=tk.NORMAL)
+        box.insert(tk.END, text)
+        box.config(state=tk.DISABLED)
+        box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        sb.config(command=box.yview)
+
+        ttk.Button(win, text=&quot;Close&quot;, command=win.destroy).pack(pady=(0, 8))
+
+    def _on_resize(self, _):
+        if hasattr(self, &quot;_resize_job&quot;):
+            self.root.after_cancel(self._resize_job)
+        self._resize_job = self.root.after(
+            500, lambda: self.cfg.__setitem__(&quot;geometry&quot;, self.root.geometry()))
+
+    def _on_close(self):
+        if self.pending:
+            if messagebox.askyesno(&quot;Unsaved changes&quot;,
+                    &quot;You have unsaved changes. Save before closing?&quot;):
+                self.cmd_save()
+        self.cfg.save()
+        if self.conn:
+            self.conn.close()
+        self.root.destroy()
+</code></pre></div>
+  </div>
+
+  <!-- Troubleshooting -->
+  <h2 class="sec-title" id="troubleshooting">Troubleshooting</h2>
+  <div class="trouble-box">
+
+    <details open>
+      <summary>⚠️ Chrome downloads the file as <code>PSPCViewer.exe.crdownload</code> instead of <code>.exe</code></summary>
+      <div class="detail-body">
+        <p>Chrome adds a <code>.crdownload</code> suffix while the download is in progress.
+        The file is <strong>not usable yet</strong> — it is incomplete.</p>
+        <p style="margin-top:.5rem"><strong>Solutions:</strong></p>
+        <ol>
+          <li><strong>Wait for the download to finish.</strong> Chrome will automatically rename it to <code>PSPCViewer.exe</code> when done. Check progress in Chrome's download bar (<code>Ctrl+J</code>).</li>
+          <li><strong>If Chrome shows "Failed" or the file stayed as <code>.crdownload</code></strong> — the download was interrupted. Click <em>Resume</em> or restart the download.</li>
+          <li><strong>Use a different browser.</strong> Firefox and Edge do not use <code>.crdownload</code> — the file lands directly as <code>PSPCViewer.exe</code>.</li>
+          <li><strong>Allow the file in Windows Security / SmartScreen.</strong> Sometimes Windows blocks the download mid-way; click <em>Keep anyway</em> in the Chrome warning bar, then re-download.</li>
+        </ol>
+      </div>
+    </details>
+
+  </div>
+
+</main>
+
+<footer>
+  PSPC Viewer &nbsp;&middot;&nbsp; Autodesk Plant&nbsp;3D .pspc reader &nbsp;&middot;&nbsp;
+  Build exe: <code>build_exe.bat</code> &nbsp;&middot;&nbsp;
+  Requirements: <code>pip install pandas openpyxl</code>
+</footer>
+
+<script>
+hljs.highlightAll();
+
+function showTab(fname) {
+  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.tab-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('btn-' + fname).classList.add('active');
+  document.getElementById('panel-' + fname).classList.add('active');
+}
+</script>
+</body>
+</html>
